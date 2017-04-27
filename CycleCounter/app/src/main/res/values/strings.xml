@@ -1,0 +1,17 @@
+<resources>
+    <string name="app_name">Cycle Counter</string>
+
+    <string name="navigation_drawer_open">Open navigation drawer</string>
+    <string name="navigation_drawer_close">Close navigation drawer</string>
+
+    <string name="action_settings">Settings</string>
+    <string name="title_activity_maps">Map</string>
+
+    <string name="cycle_sensor_discovered_notification_title_template">Cycle sensor discovered: %1$s</string>
+
+    <!-- TODO: remove this placeholder text -->
+    <string name="cycle_sensor_discovered_notification_placeholder_text_template">%1$s</string>
+
+    <string name="action_decline_sensor">No</string>
+    <string name="action_add_sensor">Add</string>
+</resources>
