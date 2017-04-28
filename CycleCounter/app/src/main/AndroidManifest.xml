@@ -55,7 +55,7 @@
 
         <provider
             android:name=".counter.db.CounterSensorProvider"
-            android:authorities="com.realenvprod"
+            android:authorities="com.realenvprod.cyclecounter.cyclesensorprovider"
             android:enabled="true"
             android:exported="false">
         </provider>
