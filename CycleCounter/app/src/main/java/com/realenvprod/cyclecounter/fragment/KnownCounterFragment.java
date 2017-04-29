@@ -31,12 +31,6 @@ public class KnownCounterFragment extends Fragment implements LoaderManager.Load
     private OnCounterListItemInteractionListener listener;
     private CounterAdapter                       adapter;
 
-    public final int offset = 30;
-    private      int page   = 0;
-
-    private RecyclerView recyclerView;
-    private boolean loadingMore = false;
-
     /**
      * Mandatory empty constructor for the fragment manager to instantiate the
      * fragment (e.g. upon screen orientation changes).
@@ -70,7 +64,8 @@ public class KnownCounterFragment extends Fragment implements LoaderManager.Load
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-        recyclerView = (RecyclerView) inflater.inflate(R.layout.fragment_counter_list, container, false);
+        final RecyclerView recyclerView = (RecyclerView) inflater
+                .inflate(R.layout.fragment_counter_list, container, false);
 
         // Set the adapter
         Context context = recyclerView.getContext();

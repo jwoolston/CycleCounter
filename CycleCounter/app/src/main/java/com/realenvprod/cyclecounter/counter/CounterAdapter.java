@@ -27,7 +27,7 @@ public class CounterAdapter extends RecyclerView.Adapter<CounterAdapter.ViewHold
     private       DataSetObserver                      dataSetObserver;
     private final OnCounterListItemInteractionListener listener;
 
-    public CounterAdapter(@NonNull Context context, @NonNull OnCounterListItemInteractionListener listener) {
+    public CounterAdapter(@NonNull Context context, @Nullable OnCounterListItemInteractionListener listener) {
         this.context = context.getApplicationContext();
         this.listener = listener;
         dataValid = cursor != null;
