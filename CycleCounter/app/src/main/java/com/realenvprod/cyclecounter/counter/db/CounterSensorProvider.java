@@ -17,7 +17,7 @@ import com.realenvprod.cyclecounter.counter.db.CounterDatabaseContract.CounterEn
 
 public class CounterSensorProvider extends ContentProvider {
 
-    private static final String AUTHORITY = "com.realenvprod.cyclecounter.cyclesensorprovider";
+    static final String AUTHORITY = "com.realenvprod.cyclecounter.cyclesensorprovider";
 
     private static final String TAG = "CounterSensorProvider";
 

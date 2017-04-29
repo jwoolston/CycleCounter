@@ -11,4 +11,4 @@
     android:layout_marginRight="16dp"
     app:layoutManager="LinearLayoutManager"
     tools:context="com.realenvprod.cyclecounter.fragment.KnownCounterFragment"
-    tools:listitem="@layout/fragment_counter"/>
+    tools:listitem="@layout/counter_list_item"/>

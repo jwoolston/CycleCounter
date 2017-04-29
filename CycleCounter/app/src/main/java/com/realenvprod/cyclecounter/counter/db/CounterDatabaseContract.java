@@ -1,17 +1,24 @@
 package com.realenvprod.cyclecounter.counter.db;
 
-import android.provider.BaseColumns;
+import static com.realenvprod.cyclecounter.counter.db.CounterDatabaseContract.CounterEntry.COUNTERS_TABLE_NAME;
+
+import android.net.Uri;
 
 /**
  * @author Jared Woolston (jwoolston@keywcorp.com)
  */
 public final class CounterDatabaseContract {
 
+    public static final Uri BASE_URI     = Uri.parse("content://" + CounterSensorProvider.AUTHORITY);
+    public static final Uri COUNTERS_URI = Uri.withAppendedPath(BASE_URI, CounterEntry.COUNTERS_TABLE_NAME);
+    public static final Uri READINGS_URI = Uri.withAppendedPath(BASE_URI, CounterEntry.READINGS_TABLE_NAME);
+
     // Ensure this class can't be accidentally instantiated
     private CounterDatabaseContract() {
     }
 
-    public static class CounterEntry implements BaseColumns {
+    public static class CounterEntry {
+        public static final String _ID                         = "_id";
         public static final String COUNTERS_TABLE_NAME         = "counters";
         public static final String READINGS_TABLE_NAME         = "readings";
         public static final String COLUMN_NAME_ALIAS           = "alias";
@@ -24,12 +31,12 @@ public final class CounterDatabaseContract {
         public static final String COLUMN_NAME_LAST_BATTERY    = "last_battery";
         public static final String COLUMN_NAME_LATITUDE        = "latitude";
         public static final String COLUMN_NAME_LONGITUDE       = "longitude";
-        public static final String COLUMN_NAME_TRACKED         = "tracked";
     }
 
-    public static final String SQL_CREATE_COUNTERS_TABLE = "CREATE TABLE " + CounterEntry.COUNTERS_TABLE_NAME + " ("
+    public static final String SQL_CREATE_COUNTERS_TABLE = "CREATE TABLE " + COUNTERS_TABLE_NAME + " ("
                                                            + CounterEntry._ID + " INTEGER PRIMARY KEY AUTOINCREMENT, "
-                                                           + CounterEntry.COLUMN_NAME_ADDRESS + " TEXT NOT NULL UNIQUE, "
+                                                           + CounterEntry.COLUMN_NAME_ADDRESS
+                                                           + " TEXT NOT NULL UNIQUE, "
                                                            + CounterEntry.COLUMN_NAME_ALIAS + " TEXT, "
                                                            + CounterEntry.COLUMN_NAME_FIRST_CONNECTED + " INTEGER, "
                                                            + CounterEntry.COLUMN_NAME_LAST_CONNECTED + " INTEGER, "
@@ -37,8 +44,7 @@ public final class CounterDatabaseContract {
                                                            + CounterEntry.COLUMN_NAME_LAST_COUNT + " INTEGER, "
                                                            + CounterEntry.COLUMN_NAME_LAST_BATTERY + " REAL, "
                                                            + CounterEntry.COLUMN_NAME_LATITUDE + " REAL, "
-                                                           + CounterEntry.COLUMN_NAME_LONGITUDE + " REAL, "
-                                                           + CounterEntry.COLUMN_NAME_TRACKED + " BOOLEAN)";
+                                                           + CounterEntry.COLUMN_NAME_LONGITUDE + " REAL)";
 
     public static final String SQL_CREATE_READINGS_TABLE = "CREATE TABLE " + CounterEntry.READINGS_TABLE_NAME + " ("
                                                            + CounterEntry._ID + " INTEGER PRIMARY KEY AUTOINCREMENT, "
@@ -49,6 +55,6 @@ public final class CounterDatabaseContract {
                                                            + CounterEntry.COLUMN_NAME_LATITUDE + " REAL, "
                                                            + CounterEntry.COLUMN_NAME_LONGITUDE + " REAL)";
 
-    public static final String SQL_DELETE_COUNTERS = "DROP TABLE IF EXISTS " + CounterEntry.COUNTERS_TABLE_NAME;
+    public static final String SQL_DELETE_COUNTERS = "DROP TABLE IF EXISTS " + COUNTERS_TABLE_NAME;
     public static final String SQL_DELETE_READINGS = "DROP TABLE IF EXISTS " + CounterEntry.READINGS_TABLE_NAME;
 }

@@ -18,17 +18,17 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import com.realenvprod.cyclecounter.bluetooth.BLEScanResult;
+import com.realenvprod.cyclecounter.counter.Counter;
 import com.realenvprod.cyclecounter.fragment.KnownCounterFragment;
-import com.realenvprod.cyclecounter.fragment.KnownCounterFragment.OnListFragmentInteractionListener;
+import com.realenvprod.cyclecounter.fragment.KnownCounterFragment.OnCounterListItemInteractionListener;
 import com.realenvprod.cyclecounter.fragment.SensorMap;
-import com.realenvprod.cyclecounter.counter.CounterContent.Counter;
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
 
 public class MainActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener,
-                   OnListFragmentInteractionListener {
+                   OnCounterListItemInteractionListener {
 
     private static final String TAG = "MainActivity";
 
@@ -148,7 +148,7 @@ public class MainActivity extends AppCompatActivity
     }
 
     @Override
-    public void onListFragmentInteraction(Counter item) {
+    public void onCounterListItemInteraction(Counter item) {
 
     }
 
