@@ -17,7 +17,6 @@ import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.LatLngBounds.Builder;
 import com.google.android.gms.maps.model.Marker;
-import com.google.android.gms.maps.model.MarkerOptions;
 import com.realenvprod.cyclecounter.counter.Counter;
 import com.realenvprod.cyclecounter.counter.db.CounterDatabaseContract;
 
@@ -66,13 +65,9 @@ public class SensorMap extends SupportMapFragment implements OnMapReadyCallback,
                     Marker marker = oldMarkers.get(counter);
                     if (marker != null) {
                         // We have a marker to update
-                        marker.setPosition(counter.location);
+                        counter.updateMarker(marker);
                     } else {
-                        MarkerOptions options = new MarkerOptions();
-                        options.position(counter.location);
-                        options.draggable(false);
-                        options.title(counter.alias);
-                        marker = map.addMarker(options);
+                        marker = counter.buildMarker(map);
                     }
                     sensorMarkers.put(counter, marker);
                     devicesCursor.moveToNext();

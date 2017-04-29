@@ -13,6 +13,8 @@ import com.realenvprod.cyclecounter.counter.db.CounterDatabaseContract;
 import com.realenvprod.cyclecounter.counter.db.CounterDatabaseContract.CounterEntry;
 import com.realenvprod.cyclecounter.service.BLEScanService;
 
+import java.util.Random;
+
 /**
  * @author Jared Woolston (jwoolston@keywcorp.com)
  */
@@ -58,12 +60,14 @@ public class CycleApplication extends Application implements ActivityLifecycleCa
             final double radius = 1610; // meters
             final int deviceCount = 25;
             final double step = 360.0 / (deviceCount - 2);
+            final Random random = new Random();
 
             for (int i = 0; i < deviceCount; ++i) {
                 Log.d(TAG, "Adding test sensor: " + baseAlias + i);
                 final ContentValues values = new ContentValues();
                 values.put(CounterEntry.COLUMN_NAME_ALIAS, baseAlias + i);
                 values.put(CounterEntry.COLUMN_NAME_ADDRESS, baseAddress + String.format("%02X", i));
+                values.put(CounterEntry.COLUMN_NAME_LAST_COUNT, random.nextInt(100000));
                 if (i == 0) {
                     values.put(CounterEntry.COLUMN_NAME_LATITUDE, center.latitude);
                     values.put(CounterEntry.COLUMN_NAME_LONGITUDE, center.longitude);
