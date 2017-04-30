@@ -4,12 +4,20 @@
     <group android:checkableBehavior="single">
         <item
             android:id="@+id/nav_known_devices"
+            android:icon="@drawable/ic_router_black_24dp"
+            android:title="Known Sensors"/>
+        <item
+            android:id="@+id/nav_visible_devices"
             android:icon="@drawable/ic_bluetooth_black"
-            android:title="Sensors"/>
+            android:title="Unknown Sensors"/>
         <item
             android:id="@+id/nav_map"
             android:icon="@drawable/ic_map_black"
-            android:title="Map"/>
+            android:title="Sensor Map"/>
+        <item
+            android:id="@+id/nav_reports"
+            android:icon="@drawable/ic_assignment_black_24dp"
+            android:title="Reports"/>
         <item
             android:id="@+id/nav_settings"
             android:icon="@drawable/ic_menu_manage"

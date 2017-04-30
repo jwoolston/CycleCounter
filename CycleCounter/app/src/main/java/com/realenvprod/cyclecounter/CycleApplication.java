@@ -47,8 +47,7 @@ public class CycleApplication extends Application implements ActivityLifecycleCa
     }
 
     private void populatedTestDataIfNeeded() {
-        final Cursor cursor = getContentResolver().query(CounterDatabaseContract.COUNTERS_URI, null, null,
-                                                         null, null);
+        final Cursor cursor = getContentResolver().query(CounterDatabaseContract.COUNTERS_URI, null, null, null, null);
         final int count = cursor != null ? cursor.getCount() : 0;
         if (cursor != null) {
             cursor.close();

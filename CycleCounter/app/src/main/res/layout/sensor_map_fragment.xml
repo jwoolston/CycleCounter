@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+             xmlns:fab="http://schemas.android.com/apk/res-auto"
+             android:layout_width="match_parent"
+             android:layout_height="match_parent">
+
+    <com.getbase.floatingactionbutton.FloatingActionsMenu
+        android:id="@+id/multiple_actions"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        fab:fab_addButtonColorNormal="@color/colorAccent"
+        fab:fab_addButtonColorPressed="@color/colorAccentPressed"
+        fab:fab_addButtonPlusIconColor="@color/half_black"
+        fab:fab_labelStyle="@style/menu_labels_style"
+        android:layout_marginBottom="16dp"
+        android:layout_marginEnd="16dp">
+
+        <com.getbase.floatingactionbutton.FloatingActionButton
+            android:id="@+id/action_toggle_heatmap"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:src="@drawable/ic_whatshot_black_24dp"
+            fab:fab_colorNormal="@color/colorAccent"
+            fab:fab_title="Show heatmap"
+            fab:fabSize="mini"
+            fab:fab_colorPressed="@color/colorAccentPressed"/>
+
+    </com.getbase.floatingactionbutton.FloatingActionsMenu>
+
+</FrameLayout>

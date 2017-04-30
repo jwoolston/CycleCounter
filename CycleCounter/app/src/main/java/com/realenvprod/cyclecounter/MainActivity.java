@@ -21,7 +21,7 @@ import com.realenvprod.cyclecounter.bluetooth.BLEScanResult;
 import com.realenvprod.cyclecounter.counter.Counter;
 import com.realenvprod.cyclecounter.fragment.KnownCounterFragment;
 import com.realenvprod.cyclecounter.fragment.KnownCounterFragment.OnCounterListItemInteractionListener;
-import com.realenvprod.cyclecounter.fragment.SensorMap;
+import com.realenvprod.cyclecounter.fragment.SensorMapFragment;
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
@@ -143,7 +143,7 @@ public class MainActivity extends AppCompatActivity
 
     private void showMap() {
         Log.d(TAG, "Showing map fragment.");
-        final Fragment fragment = new SensorMap();
+        final Fragment fragment = new SensorMapFragment();
         getSupportFragmentManager().beginTransaction().replace(R.id.fragment_container, fragment).commit();
     }
 
