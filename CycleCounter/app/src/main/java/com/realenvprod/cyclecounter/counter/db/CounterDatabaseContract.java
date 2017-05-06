@@ -1,5 +1,6 @@
 package com.realenvprod.cyclecounter.counter.db;
 
+import static com.realenvprod.cyclecounter.counter.db.CounterDatabaseContract.CounterEntry.COLUMN_NAME_ADDRESS;
 import static com.realenvprod.cyclecounter.counter.db.CounterDatabaseContract.CounterEntry.COUNTERS_TABLE_NAME;
 
 import android.net.Uri;
@@ -57,4 +58,8 @@ public final class CounterDatabaseContract {
 
     public static final String SQL_DELETE_COUNTERS = "DROP TABLE IF EXISTS " + COUNTERS_TABLE_NAME;
     public static final String SQL_DELETE_READINGS = "DROP TABLE IF EXISTS " + CounterEntry.READINGS_TABLE_NAME;
+
+    public static final String[] PROJECTION_ADDRESS_ONLY = new String[] { COLUMN_NAME_ADDRESS };
+
+    public static final String SELECTION_ADDRESS_ONLY = COLUMN_NAME_ADDRESS + " = ?";
 }

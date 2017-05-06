@@ -3,8 +3,11 @@ package com.realenvprod.cyclecounter;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothManager;
 import android.content.Context;
+import android.content.DialogInterface;
+import android.content.DialogInterface.OnClickListener;
 import android.content.Intent;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
 import android.support.design.widget.NavigationView;
 import android.support.v4.app.Fragment;
 import android.support.v4.view.GravityCompat;
@@ -17,11 +20,12 @@ import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
-import com.realenvprod.cyclecounter.bluetooth.BLEScanResult;
 import com.realenvprod.cyclecounter.counter.Counter;
+import com.realenvprod.cyclecounter.fragment.AddCounterFragment;
 import com.realenvprod.cyclecounter.fragment.KnownCounterFragment;
 import com.realenvprod.cyclecounter.fragment.KnownCounterFragment.OnCounterListItemInteractionListener;
 import com.realenvprod.cyclecounter.fragment.SensorMapFragment;
+import com.realenvprod.cyclecounter.fragment.UnknownCounterFragment;
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
@@ -121,14 +125,20 @@ public class MainActivity extends AppCompatActivity
     public boolean onNavigationItemSelected(MenuItem item) {
         // Handle navigation view item clicks here.
         int id = item.getItemId();
-        Log.d(TAG, "On menu item selected: " + id);
 
-        if (id == R.id.nav_known_devices) {
-            showKnownCounterList();
-        } else if (id == R.id.nav_map) {
-            showMap();
-        } else if (id == R.id.nav_settings) {
-
+        switch (id) {
+            case R.id.nav_known_devices:
+                showKnownCounterList();
+                break;
+            case R.id.nav_unknown_devices:
+                showUnknownCounterList();
+                break;
+            case R.id.nav_map:
+                showMap();
+                break;
+            case R.id.nav_reports:
+            case R.id.nav_settings:
+            case R.id.nav_send:
         }
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         drawer.closeDrawer(GravityCompat.START);
@@ -141,9 +151,21 @@ public class MainActivity extends AppCompatActivity
         getSupportFragmentManager().beginTransaction().replace(R.id.fragment_container, fragment).commit();
     }
 
+    private void showUnknownCounterList() {
+        Log.d(TAG, "Showing unknown sensor list.");
+        Fragment fragment = UnknownCounterFragment.newInstance();
+        getSupportFragmentManager().beginTransaction().replace(R.id.fragment_container, fragment).commit();
+    }
+
     private void showMap() {
         Log.d(TAG, "Showing map fragment.");
         final Fragment fragment = new SensorMapFragment();
+        getSupportFragmentManager().beginTransaction().replace(R.id.fragment_container, fragment).commit();
+    }
+
+    private void showAddCounterFragment(@NonNull Counter counter) {
+        Log.d(TAG, "Showing add counter fragment.");
+        final Fragment fragment = AddCounterFragment.newInstance(counter);
         getSupportFragmentManager().beginTransaction().replace(R.id.fragment_container, fragment).commit();
     }
 
@@ -153,12 +175,19 @@ public class MainActivity extends AppCompatActivity
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)
-    public void onBLEScanResult(BLEScanResult scanResult) {
-        Log.d(TAG, "Received scan result: " + scanResult);
-        AlertDialog.Builder builder = new Builder(this);
-        builder.setTitle("New Cycle Sensor Discovered.");
-        builder.setMessage("A new cycle sensor has been discovered. Would you like to add it to the database?");
-        builder.setCancelable(true).setPositiveButton("YES", null).setNegativeButton("NO", null);
-        builder.show();
+    public void onCounterDiscovered(final Counter counter) {
+        if (!counter.isKnown) {
+            Log.d(TAG, "Received counter discovery: " + counter);
+            AlertDialog.Builder builder = new Builder(this);
+            builder.setTitle("New Cycle Sensor Discovered.");
+            builder.setMessage("A new cycle sensor has been discovered. Would you like to add it to the database?");
+            builder.setCancelable(true).setPositiveButton("YES", new OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialogInterface, int i) {
+                    showAddCounterFragment(counter);
+                }
+            }).setNegativeButton("NO", null);
+            builder.show();
+        }
     }
 }

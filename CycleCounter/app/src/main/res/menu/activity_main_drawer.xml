@@ -7,7 +7,7 @@
             android:icon="@drawable/ic_router_black_24dp"
             android:title="Known Sensors"/>
         <item
-            android:id="@+id/nav_visible_devices"
+            android:id="@+id/nav_unknown_devices"
             android:icon="@drawable/ic_bluetooth_black"
             android:title="Unknown Sensors"/>
         <item

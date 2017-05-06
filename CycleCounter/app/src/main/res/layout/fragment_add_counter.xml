@@ -1,0 +1,97 @@
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+                xmlns:tools="http://schemas.android.com/tools"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:paddingBottom="4dp"
+                android:paddingEnd="4dp"
+                android:paddingStart="4dp"
+                android:paddingTop="?android:attr/actionBarSize"
+                tools:context="com.realenvprod.cyclecounter.fragment.AddCounterFragment">
+
+
+    <TextView
+        android:id="@+id/alias_label"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentStart="true"
+        android:layout_alignParentTop="true"
+        android:text="Alias:"
+        android:textAppearance="@style/TextAppearance.AppCompat.Headline"/>
+
+    <EditText
+        android:id="@+id/alias_input"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentEnd="true"
+        android:layout_alignParentStart="true"
+        android:layout_below="@+id/alias_label"
+        android:ems="10"
+        android:hint="Custom device alias"
+        android:inputType="text"/>
+
+    <RelativeLayout
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:layout_below="@id/alias_input"
+        android:layout_centerHorizontal="true">
+
+        <TextView
+            android:id="@+id/address_label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentStart="true"
+            android:layout_alignParentTop="true"
+            android:text="Address:"/>
+
+        <TextView
+            android:id="@+id/address_entry"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentEnd="true"
+            android:layout_alignBaseline="@id/address_label"
+            android:text="00:11:22:33:44:55:66:77"/>
+
+        <TextView
+            android:id="@+id/current_count_label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentStart="true"
+            android:layout_below="@id/address_label"
+            android:text="Current Count:"/>
+
+        <TextView
+            android:id="@+id/current_count_entry"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentEnd="true"
+            android:layout_alignBaseline="@id/current_count_label"
+            android:text="123456"/>
+
+        <TextView
+            android:id="@+id/current_battery_label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentStart="true"
+            android:layout_below="@id/current_count_label"
+            android:text="Current Battery:"/>
+
+        <TextView
+            android:id="@+id/current_battery_entry"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentEnd="true"
+            android:layout_alignBaseline="@id/current_battery_label"
+            android:text="100%"/>
+
+        <android.support.design.widget.FloatingActionButton
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/save_counter"
+            android:layout_margin="4dp"
+            android:layout_alignParentEnd="true"
+            android:layout_alignParentBottom="true"
+            android:src="@drawable/ic_check_black_24dp"/>
+
+    </RelativeLayout>
+
+</RelativeLayout>

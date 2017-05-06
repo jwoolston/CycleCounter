@@ -55,6 +55,7 @@ public class SensorMapFragment extends SupportMapFragment implements OnMapReadyC
     public void onResume() {
         super.onResume();
         getMapAsync(this);
+        getActivity().setTitle("Cycle Counter Map");
     }
 
     private void updateSensorMarkersIfAble() {

@@ -48,7 +48,7 @@
             android:value="@string/google_maps_key"/>
 
         <service
-            android:name=".service.BLEScanService"
+            android:name=".service.BluetoothLeService"
             android:enabled="true"
             android:exported="false">
         </service>

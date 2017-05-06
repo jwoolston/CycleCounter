@@ -11,7 +11,7 @@ import android.util.Log;
 import com.google.android.gms.maps.model.LatLng;
 import com.realenvprod.cyclecounter.counter.db.CounterDatabaseContract;
 import com.realenvprod.cyclecounter.counter.db.CounterDatabaseContract.CounterEntry;
-import com.realenvprod.cyclecounter.service.BLEScanService;
+import com.realenvprod.cyclecounter.service.BluetoothLeService;
 
 import java.util.Random;
 
@@ -42,7 +42,7 @@ public class CycleApplication extends Application implements ActivityLifecycleCa
     }
 
     private void launchScanService() {
-        final Intent intent = new Intent(this, BLEScanService.class);
+        final Intent intent = new Intent(this, BluetoothLeService.class);
         startService(intent);
     }
 
