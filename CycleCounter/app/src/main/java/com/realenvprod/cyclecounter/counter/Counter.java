@@ -4,6 +4,7 @@ import android.database.Cursor;
 import android.os.Parcel;
 import android.os.Parcelable;
 import android.support.annotation.NonNull;
+
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
@@ -11,6 +12,7 @@ import com.google.android.gms.maps.model.MarkerOptions;
 import com.realenvprod.cyclecounter.bluetooth.BLEScanResult;
 import com.realenvprod.cyclecounter.counter.db.CounterDatabaseContract.CounterEntry;
 
+import java.util.HashMap;
 import java.util.Objects;
 
 /**
@@ -26,6 +28,34 @@ public class Counter implements Parcelable {
             0x09, 0x43, 0x79, 0x63, 0x6C, 0x65, 0x20, 0x43, 0x6F, 0x75, 0x6E, 0x74, 0x65, 0x72, // "Cycle Counter"
             0x07, 0x03, 0x0A, 0x18, 0x0F, 0x18, (byte) 0xC3, 0x35 // List of services
     };
+
+    private static HashMap<String, String> attributes = new HashMap();
+
+    public static final String DEVICE_INFORMATION_SERVICE = "0000180a-0000-1000-8000-00805f9b34fb";
+    public static final String BATTERY_LEVEL_SERVICE = "0000180f-0000-1000-8000-00805f9b34fb";
+    public static final String CYCLE_COUNT_SERVICE = "000035c3-0000-1000-8000-00805f9b34fb";
+    public static final String CLIENT_CHARACTERISTIC_CONFIG = "00002902-0000-1000-8000-00805f9b34fb";
+    public static final String MANUFACTURER_NAME_STRING = "00002a29-0000-1000-8000-00805f9b34fb";
+    public static final String MODEL_NUMBER_STRING = "00002a24-0000-1000-8000-00805f9b34fb";
+    public static final String HARDWARE_REVISION_STRING = "00002a27-0000-1000-8000-00805f9b34fb";
+    public static final String SOFTWARE_REVISION_STRING = "00002a28-0000-1000-8000-00805f9b34fb";
+    public static final String BATTERY_LEVEL = "00002a19-0000-1000-8000-00805f9b34fb";
+    public static final String CYCLE_COUNT = "000095dd-0000-1000-8000-00805f9b34fb";
+
+    static {
+        // Services
+        attributes.put(DEVICE_INFORMATION_SERVICE, "Device Information Service");
+        attributes.put(BATTERY_LEVEL_SERVICE, "Battery Level Service");
+        attributes.put(CYCLE_COUNT_SERVICE, "Cycle Count Service");
+        // Characteristics
+        attributes.put(CLIENT_CHARACTERISTIC_CONFIG, "Client Characteristic Config");
+        attributes.put(MANUFACTURER_NAME_STRING, "Manufacturer Name String");
+        attributes.put(MODEL_NUMBER_STRING, "Model Number String");
+        attributes.put(HARDWARE_REVISION_STRING, "Hardware Revision String");
+        attributes.put(SOFTWARE_REVISION_STRING, "Software Revision String");
+        attributes.put(BATTERY_LEVEL, "Battery Level");
+        attributes.put(CYCLE_COUNT, "Cycle Count");
+    }
 
     public final String alias;
     public final String address;
@@ -60,6 +90,11 @@ public class Counter implements Parcelable {
             }
         }
         return true;
+    }
+
+    public static String lookupAttribute(@NonNull String uuid, @NonNull String defaultName) {
+        String name = attributes.get(uuid);
+        return name == null ? defaultName : name;
     }
 
     public Counter(@NonNull Cursor cursor) {

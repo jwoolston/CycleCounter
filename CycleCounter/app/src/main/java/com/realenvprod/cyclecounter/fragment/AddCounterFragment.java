@@ -1,7 +1,11 @@
 package com.realenvprod.cyclecounter.fragment;
 
 
+import android.content.ComponentName;
+import android.content.Intent;
+import android.content.ServiceConnection;
 import android.os.Bundle;
+import android.os.IBinder;
 import android.support.annotation.NonNull;
 import android.support.v4.app.Fragment;
 import android.view.LayoutInflater;
@@ -9,8 +13,12 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.TextView;
+
 import com.realenvprod.cyclecounter.R;
 import com.realenvprod.cyclecounter.counter.Counter;
+import com.realenvprod.cyclecounter.service.BluetoothLeService;
+
+import static android.content.Context.BIND_AUTO_CREATE;
 
 /**
  * A simple {@link Fragment} subclass.
@@ -23,6 +31,7 @@ public class AddCounterFragment extends Fragment {
 
     private static final String ARG_COUNTER = "counter";
 
+    private BluetoothLeService bluetoothLeService;
     private Counter counter;
 
     private EditText aliasView;
@@ -84,5 +93,22 @@ public class AddCounterFragment extends Fragment {
         super.onResume();
         getActivity().setTitle("Add Cycle Counter");
         addressView.setText(counter.address);
+        Intent gattServiceIntent = new Intent(getContext(), BluetoothLeService.class);
+        getActivity().bindService(gattServiceIntent, mServiceConnection, BIND_AUTO_CREATE);
     }
+
+    private final ServiceConnection mServiceConnection = new ServiceConnection() {
+
+        @Override
+        public void onServiceConnected(ComponentName componentName, IBinder service) {
+            bluetoothLeService = ((BluetoothLeService.LocalBinder) service).getService();
+            // Automatically connects to the device upon successful start-up initialization.
+            bluetoothLeService.connect(counter.address);
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName componentName) {
+            bluetoothLeService = null;
+        }
+    };
 }
