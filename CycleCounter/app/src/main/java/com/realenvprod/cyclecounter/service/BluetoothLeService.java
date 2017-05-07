@@ -6,6 +6,8 @@ import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattCallback;
 import android.bluetooth.BluetoothGattCharacteristic;
+import android.bluetooth.BluetoothGattDescriptor;
+import android.bluetooth.BluetoothGattService;
 import android.bluetooth.BluetoothManager;
 import android.bluetooth.BluetoothProfile;
 import android.content.Context;
@@ -28,6 +30,7 @@ import com.realenvprod.cyclecounter.notification.CycleSensorDiscoveredNotificati
 import org.greenrobot.eventbus.EventBus;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.UUID;
 
 public class BluetoothLeService extends Service {
@@ -196,6 +199,56 @@ public class BluetoothLeService extends Service {
         mBluetoothDeviceAddress = null;
     }
 
+    /**
+     * Request a read on a given {@code BluetoothGattCharacteristic}. The read result is reported
+     * asynchronously through the {@code BluetoothGattCallback#onCharacteristicRead(android.bluetooth.BluetoothGatt, android.bluetooth.BluetoothGattCharacteristic, int)}
+     * callback.
+     *
+     * @param characteristic The characteristic to read from.
+     */
+    public void readCharacteristic(BluetoothGattCharacteristic characteristic) {
+        if (mBluetoothAdapter == null || mBluetoothGatt == null) {
+            Log.w(TAG, "BluetoothAdapter not initialized");
+            return;
+        }
+        mBluetoothGatt.readCharacteristic(characteristic);
+    }
+
+    /**
+     * Enables or disables notification on a give characteristic.
+     *
+     * @param characteristic Characteristic to act on.
+     * @param enabled        If true, enable notification.  False otherwise.
+     */
+    public void setCharacteristicNotification(BluetoothGattCharacteristic characteristic,
+                                              boolean enabled) {
+        if (mBluetoothAdapter == null || mBluetoothGatt == null) {
+            Log.w(TAG, "BluetoothAdapter not initialized");
+            return;
+        }
+        mBluetoothGatt.setCharacteristicNotification(characteristic, enabled);
+
+        // This is specific to Heart Rate Measurement.
+        if (UUID_CYCLE_COUNT.equals(characteristic.getUuid())) {
+            BluetoothGattDescriptor descriptor = characteristic.getDescriptor(
+                UUID.fromString(Counter.CLIENT_CHARACTERISTIC_CONFIG));
+            descriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
+            mBluetoothGatt.writeDescriptor(descriptor);
+        }
+    }
+
+    /**
+     * Retrieves a list of supported GATT services on the connected device. This should be
+     * invoked only after {@code BluetoothGatt#discoverServices()} completes successfully.
+     *
+     * @return A {@code List} of supported services.
+     */
+    public List<BluetoothGattService> getSupportedGattServices() {
+        if (mBluetoothGatt == null) return null;
+
+        return mBluetoothGatt.getServices();
+    }
+
     private void broadcastUpdate(final String action) {
         final Intent intent = new Intent(action);
         sendBroadcast(intent);
@@ -209,6 +262,10 @@ public class BluetoothLeService extends Service {
             final int batteryLevel = characteristic.getIntValue(BluetoothGattCharacteristic.FORMAT_UINT8, 0);
             Log.d(TAG, String.format("Received battery level: %d%%", batteryLevel));
             intent.putExtra(EXTRA_DATA, String.valueOf(batteryLevel));
+        } else if (UUID_CYCLE_COUNT.equals(characteristic.getUuid())) {
+            final int cycleCount = characteristic.getIntValue(BluetoothGattCharacteristic.FORMAT_UINT32, 0);
+            Log.d(TAG, String.format("Received cycle count: %d", cycleCount));
+            intent.putExtra(EXTRA_DATA, String.valueOf(cycleCount));
         } else {
             // For all other profiles, writes the data formatted in HEX.
             final byte[] data = characteristic.getValue();
