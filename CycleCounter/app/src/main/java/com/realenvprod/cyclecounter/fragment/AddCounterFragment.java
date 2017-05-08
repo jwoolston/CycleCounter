@@ -6,6 +6,7 @@ import static android.content.Context.BIND_AUTO_CREATE;
 import android.bluetooth.BluetoothGattCharacteristic;
 import android.bluetooth.BluetoothGattService;
 import android.content.ComponentName;
+import android.content.ContentValues;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
@@ -18,12 +19,15 @@ import android.support.v4.app.Fragment;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.View.OnClickListener;
 import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.TextView;
 import com.realenvprod.cyclecounter.R;
 import com.realenvprod.cyclecounter.bluetooth.GattUpdateReceiver;
 import com.realenvprod.cyclecounter.counter.Counter;
+import com.realenvprod.cyclecounter.counter.db.CounterDatabaseContract;
+import com.realenvprod.cyclecounter.counter.db.CounterDatabaseContract.CounterEntry;
 import com.realenvprod.cyclecounter.service.BluetoothLeService;
 
 import java.util.List;
@@ -38,14 +42,15 @@ public class AddCounterFragment extends Fragment implements GattUpdateReceiver.O
     private static final String TAG = "AddCounterFragment";
 
     private static final String ARG_COUNTER = "counter";
-    private static final String LIST_NAME = "NAME";
-    private static final String LIST_UUID = "UUID";
 
     private BluetoothGattCharacteristic cycleCountCharacteristic;
     private BluetoothGattCharacteristic batteryLevelCharacteristic;
     private BluetoothLeService bluetoothLeService;
     private GattUpdateReceiver gattUpdateReceiver;
     private Counter counter;
+
+    private long count = -1;
+    private int battery = -1;
 
     private EditText aliasView;
     private TextView addressView;
@@ -98,6 +103,12 @@ public class AddCounterFragment extends Fragment implements GattUpdateReceiver.O
         modelView = (TextView) view.findViewById(R.id.model_number_entry);
         hardwareView = (TextView) view.findViewById(R.id.hardware_revision_entry);
         softwareView = (TextView) view.findViewById(R.id.software_revision_entry);
+        (view.findViewById(R.id.save_counter)).setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                saveCounter();
+            }
+        });
         return view;
     }
 
@@ -148,12 +159,14 @@ public class AddCounterFragment extends Fragment implements GattUpdateReceiver.O
     @Override
     public void onCycleCountUpdate(@IntRange(from = 0) long cycleCount) {
         Log.d(TAG, "Cycle count update: " + cycleCount);
+        count = cycleCount;
         countView.setText(cycleCount >= 0 ? "" + cycleCount : "Error");
     }
 
     @Override
     public void onBatteryUpdate(@IntRange(from = 0, to = 100) int batteryLevel) {
         Log.d(TAG, "Battery update: " + batteryLevel + "%");
+        battery = batteryLevel;
         batteryView.setText(batteryLevel >= 0 ? "" + batteryLevel + "%" : "Error");
     }
 
@@ -175,7 +188,19 @@ public class AddCounterFragment extends Fragment implements GattUpdateReceiver.O
         softwareView.setText(revision);
     }
 
-    private void updateConnectionState(final int resourceId) {
+    private void saveCounter() {
+        final long time = System.currentTimeMillis();
+        ContentValues values = new ContentValues();
+        values.put(CounterEntry.COLUMN_NAME_ALIAS, aliasView.getText().toString());
+        values.put(CounterEntry.COLUMN_NAME_ADDRESS, counter.address);
+        values.put(CounterEntry.COLUMN_NAME_FIRST_CONNECTED, time);
+        values.put(CounterEntry.COLUMN_NAME_INITIAL_COUNT, count);
+        values.put(CounterEntry.COLUMN_NAME_LAST_BATTERY, battery);
+        values.put(CounterEntry.COLUMN_NAME_LAST_CONNECTED, time);
+        values.put(CounterEntry.COLUMN_NAME_LAST_COUNT, count);
+        values.put(CounterEntry.COLUMN_NAME_LATITUDE, 0);
+        values.put(CounterEntry.COLUMN_NAME_LONGITUDE, 0);
+        getContext().getContentResolver().insert(CounterDatabaseContract.COUNTERS_URI, values);
     }
 
     // Demonstrates how to iterate through the supported GATT Services/Characteristics.

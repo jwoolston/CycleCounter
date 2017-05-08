@@ -23,7 +23,7 @@ public class CycleApplication extends Application implements ActivityLifecycleCa
 
     private static final String TAG = "CycleApplication";
 
-    private static final boolean isDebug = true;
+    private static final boolean isDebug = false;
 
     private boolean mainActivityVisibile = false;
 
