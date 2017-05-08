@@ -16,7 +16,7 @@
         android:layout_alignParentStart="true"
         android:layout_alignParentTop="true"
         android:text="Alias:"
-        android:textAppearance="@style/TextAppearance.AppCompat.Headline"/>
+        android:textAppearance="@style/TextAppearance.AppCompat.Large"/>
 
     <EditText
         android:id="@+id/alias_input"
@@ -41,15 +41,17 @@
             android:layout_height="wrap_content"
             android:layout_alignParentStart="true"
             android:layout_alignParentTop="true"
-            android:text="Address:"/>
+            android:text="Address:"
+            android:textAppearance="@style/TextAppearance.AppCompat.Large"/>
 
         <TextView
             android:id="@+id/address_entry"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_alignParentEnd="true"
             android:layout_alignBaseline="@id/address_label"
-            android:text="00:11:22:33:44:55:66:77"/>
+            android:layout_alignParentEnd="true"
+            android:text="--:--:--:--:--:--:--:--"
+            android:textAppearance="@style/TextAppearance.AppCompat.Large"/>
 
         <TextView
             android:id="@+id/current_count_label"
@@ -57,7 +59,8 @@
             android:layout_height="wrap_content"
             android:layout_alignParentStart="true"
             android:layout_below="@id/address_label"
-            android:text="Current Count:"/>
+            android:text="Current Count:"
+            android:textAppearance="@style/TextAppearance.AppCompat.Large"/>
 
         <TextView
             android:id="@+id/current_count_entry"
@@ -65,7 +68,8 @@
             android:layout_height="wrap_content"
             android:layout_alignParentEnd="true"
             android:layout_alignBaseline="@id/current_count_label"
-            android:text="123456"/>
+            android:text="--"
+            android:textAppearance="@style/TextAppearance.AppCompat.Large"/>
 
         <TextView
             android:id="@+id/current_battery_label"
@@ -73,7 +77,8 @@
             android:layout_height="wrap_content"
             android:layout_alignParentStart="true"
             android:layout_below="@id/current_count_label"
-            android:text="Current Battery:"/>
+            android:text="Current Battery:"
+            android:textAppearance="@style/TextAppearance.AppCompat.Large"/>
 
         <TextView
             android:id="@+id/current_battery_entry"
@@ -81,17 +86,73 @@
             android:layout_height="wrap_content"
             android:layout_alignParentEnd="true"
             android:layout_alignBaseline="@id/current_battery_label"
-            android:text="100%"/>
+            android:text="--"
+            android:textAppearance="@style/TextAppearance.AppCompat.Large"/>
 
-        <android.support.design.widget.FloatingActionButton
+        <TextView
+            android:id="@+id/model_number_label"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:id="@+id/save_counter"
-            android:layout_margin="4dp"
+            android:layout_alignParentStart="true"
+            android:layout_below="@id/current_battery_label"
+            android:paddingTop="16dp"
+            android:text="Model Number:"
+            android:textAppearance="@style/TextAppearance.AppCompat.Medium"/>
+
+        <TextView
+            android:id="@+id/model_number_entry"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
             android:layout_alignParentEnd="true"
-            android:layout_alignParentBottom="true"
-            android:src="@drawable/ic_check_black_24dp"/>
+            android:layout_alignBaseline="@id/model_number_label"
+            android:text="--"
+            android:textAppearance="@style/TextAppearance.AppCompat.Medium"/>
+
+        <TextView
+            android:id="@+id/hardware_revision_label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentStart="true"
+            android:layout_below="@id/model_number_label"
+            android:text="Hardware Version:"
+            android:textAppearance="@style/TextAppearance.AppCompat.Medium"/>
+
+        <TextView
+            android:id="@+id/hardware_revision_entry"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentEnd="true"
+            android:layout_alignBaseline="@id/hardware_revision_label"
+            android:text="--"
+            android:textAppearance="@style/TextAppearance.AppCompat.Medium"/>
+
+        <TextView
+            android:id="@+id/software_revision_label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentStart="true"
+            android:layout_below="@id/hardware_revision_label"
+            android:text="Software Version:"
+            android:textAppearance="@style/TextAppearance.AppCompat.Medium"/>
+
+        <TextView
+            android:id="@+id/software_revision_entry"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentEnd="true"
+            android:layout_alignBaseline="@id/software_revision_label"
+            android:text="--"
+            android:textAppearance="@style/TextAppearance.AppCompat.Medium"/>
 
     </RelativeLayout>
+
+    <android.support.design.widget.FloatingActionButton
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/save_counter"
+        android:layout_margin="4dp"
+        android:layout_alignParentEnd="true"
+        android:layout_alignParentBottom="true"
+        android:src="@drawable/ic_check_black_24dp"/>
 
 </RelativeLayout>

@@ -1,6 +1,8 @@
 package com.realenvprod.cyclecounter.fragment;
 
 
+import static android.content.Context.BIND_AUTO_CREATE;
+
 import android.bluetooth.BluetoothGattCharacteristic;
 import android.bluetooth.BluetoothGattService;
 import android.content.ComponentName;
@@ -9,6 +11,7 @@ import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.os.Bundle;
 import android.os.IBinder;
+import android.support.annotation.IntRange;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
@@ -18,17 +21,12 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.TextView;
-
 import com.realenvprod.cyclecounter.R;
 import com.realenvprod.cyclecounter.bluetooth.GattUpdateReceiver;
 import com.realenvprod.cyclecounter.counter.Counter;
 import com.realenvprod.cyclecounter.service.BluetoothLeService;
 
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-
-import static android.content.Context.BIND_AUTO_CREATE;
 
 /**
  * A simple {@link Fragment} subclass.
@@ -40,7 +38,11 @@ public class AddCounterFragment extends Fragment implements GattUpdateReceiver.O
     private static final String TAG = "AddCounterFragment";
 
     private static final String ARG_COUNTER = "counter";
+    private static final String LIST_NAME = "NAME";
+    private static final String LIST_UUID = "UUID";
 
+    private BluetoothGattCharacteristic cycleCountCharacteristic;
+    private BluetoothGattCharacteristic batteryLevelCharacteristic;
     private BluetoothLeService bluetoothLeService;
     private GattUpdateReceiver gattUpdateReceiver;
     private Counter counter;
@@ -49,8 +51,11 @@ public class AddCounterFragment extends Fragment implements GattUpdateReceiver.O
     private TextView addressView;
     private TextView countView;
     private TextView batteryView;
+    private TextView modelView;
+    private TextView hardwareView;
+    private TextView softwareView;
 
-    private boolean mConnected = false;
+    private boolean connected = false;
 
     public AddCounterFragment() {
         // Required empty public constructor
@@ -90,6 +95,9 @@ public class AddCounterFragment extends Fragment implements GattUpdateReceiver.O
         addressView = (TextView) view.findViewById(R.id.address_entry);
         countView = (TextView) view.findViewById(R.id.current_count_entry);
         batteryView = (TextView) view.findViewById(R.id.current_battery_entry);
+        modelView = (TextView) view.findViewById(R.id.model_number_entry);
+        hardwareView = (TextView) view.findViewById(R.id.hardware_revision_entry);
+        softwareView = (TextView) view.findViewById(R.id.software_revision_entry);
         return view;
     }
 
@@ -99,6 +107,9 @@ public class AddCounterFragment extends Fragment implements GattUpdateReceiver.O
         addressView = null;
         countView = null;
         batteryView = null;
+        modelView = null;
+        hardwareView = null;
+        softwareView = null;
         super.onDestroyView();
     }
 
@@ -109,80 +120,112 @@ public class AddCounterFragment extends Fragment implements GattUpdateReceiver.O
         addressView.setText(counter.address);
         getContext().registerReceiver(gattUpdateReceiver, makeGattUpdateIntentFilter());
         Intent gattServiceIntent = new Intent(getContext(), BluetoothLeService.class);
-        getActivity().bindService(gattServiceIntent, mServiceConnection, BIND_AUTO_CREATE);
+        getActivity().bindService(gattServiceIntent, serviceConnection, BIND_AUTO_CREATE);
     }
 
     @Override
     public void onPause() {
         getContext().unregisterReceiver(gattUpdateReceiver);
-        getActivity().unbindService(mServiceConnection);
+        getActivity().unbindService(serviceConnection);
         super.onPause();
     }
 
     @Override
     public void onUpdateReceived(@NonNull String action, @Nullable String data) {
         if (BluetoothLeService.ACTION_GATT_CONNECTED.equals(action)) {
-            mConnected = true;
+            connected = true;
             //updateConnectionState(R.string.connected);
         } else if (BluetoothLeService.ACTION_GATT_DISCONNECTED.equals(action)) {
-            mConnected = false;
+            connected = false;
             //updateConnectionState(R.string.disconnected);
         } else if (BluetoothLeService.ACTION_GATT_SERVICES_DISCOVERED.equals(action)) {
             // Show all the supported services and characteristics on the user interface.
-            displayGattServices(bluetoothLeService.getSupportedGattServices());
-        } else if (BluetoothLeService.ACTION_DATA_AVAILABLE.equals(action)) {
-            displayData(data);
+            final List<BluetoothGattService> services = bluetoothLeService.getSupportedGattServices();
+            displayAndObserveGattServices(services);
         }
+    }
+
+    @Override
+    public void onCycleCountUpdate(@IntRange(from = 0) long cycleCount) {
+        Log.d(TAG, "Cycle count update: " + cycleCount);
+        countView.setText(cycleCount >= 0 ? "" + cycleCount : "Error");
+    }
+
+    @Override
+    public void onBatteryUpdate(@IntRange(from = 0, to = 100) int batteryLevel) {
+        Log.d(TAG, "Battery update: " + batteryLevel + "%");
+        batteryView.setText(batteryLevel >= 0 ? "" + batteryLevel + "%" : "Error");
+    }
+
+    @Override
+    public void onModelNumber(@NonNull String model) {
+        Log.d(TAG, "Model number: " + model);
+        modelView.setText(model);
+    }
+
+    @Override
+    public void onHardwareRevisionString(@NonNull String revision) {
+        Log.d(TAG, "Hardware version: " + revision);
+        hardwareView.setText(revision);
+    }
+
+    @Override
+    public void onSoftwareRevisionString(@NonNull String revision) {
+        Log.d(TAG, "Software version: " + revision);
+        softwareView.setText(revision);
     }
 
     private void updateConnectionState(final int resourceId) {
     }
 
-    private void displayData(String data) {
-        if (data != null) {
-            Log.d(TAG, "Received data: " + data);
-        }
-    }
-
     // Demonstrates how to iterate through the supported GATT Services/Characteristics.
     // In this sample, we populate the data structure that is bound to the ExpandableListView
     // on the UI.
-    private void displayGattServices(List<BluetoothGattService> gattServices) {
+    private void displayAndObserveGattServices(List<BluetoothGattService> gattServices) {
         if (gattServices == null) return;
         String uuid = null;
-        String unknownServiceString = "Unknown Service"; //getResources().getString(R.string.unknown_service);
-        String unknownCharaString = "Unknown Characteristic"; //getResources().getString(R.string.unknown_characteristic);
-        ArrayList<HashMap<String, String>> gattServiceData = new ArrayList<HashMap<String, String>>();
-        ArrayList<ArrayList<HashMap<String, String>>> gattCharacteristicData
-            = new ArrayList<ArrayList<HashMap<String, String>>>();
 
         // Loops through available GATT Services.
         for (BluetoothGattService gattService : gattServices) {
-            HashMap<String, String> currentServiceData = new HashMap<String, String>();
+            List<BluetoothGattCharacteristic> gattCharacteristics = gattService.getCharacteristics();
             uuid = gattService.getUuid().toString();
-            Log.d(TAG, "Service: " + Counter.lookupAttribute(uuid, unknownServiceString));
-            gattServiceData.add(currentServiceData);
-
-            ArrayList<HashMap<String, String>> gattCharacteristicGroupData =
-                new ArrayList<HashMap<String, String>>();
-            List<BluetoothGattCharacteristic> gattCharacteristics =
-                gattService.getCharacteristics();
-            ArrayList<BluetoothGattCharacteristic> charas =
-                new ArrayList<BluetoothGattCharacteristic>();
-
-            // Loops through available Characteristics.
-            for (BluetoothGattCharacteristic gattCharacteristic : gattCharacteristics) {
-                charas.add(gattCharacteristic);
-                HashMap<String, String> currentCharaData = new HashMap<String, String>();
-                uuid = gattCharacteristic.getUuid().toString();
-                Log.d(TAG, "Characteristic: " + Counter.lookupAttribute(uuid, unknownCharaString));
-                gattCharacteristicGroupData.add(currentCharaData);
+            switch (uuid) {
+                case Counter.DEVICE_INFORMATION_SERVICE:
+                    for (BluetoothGattCharacteristic gattCharacteristic : gattCharacteristics) {
+                        switch (gattCharacteristic.getUuid().toString()) {
+                            case Counter.MODEL_NUMBER_STRING:
+                            case Counter.HARDWARE_REVISION_STRING:
+                            case Counter.SOFTWARE_REVISION_STRING:
+                                Log.v(TAG, "Reading device info characteristic: " + uuid);
+                                bluetoothLeService.readCharacteristic(gattCharacteristic);
+                                break;
+                        }
+                    }
+                case Counter.CYCLE_COUNT_SERVICE:
+                    for (BluetoothGattCharacteristic gattCharacteristic : gattCharacteristics) {
+                        if (Counter.CYCLE_COUNT.equals(gattCharacteristic.getUuid().toString())) {
+                            Log.v(TAG, "Reading cycle count characteristic.");
+                            cycleCountCharacteristic = gattCharacteristic;
+                            bluetoothLeService.readCharacteristic(cycleCountCharacteristic);
+                            bluetoothLeService.setCharacteristicNotification(cycleCountCharacteristic, true);
+                        }
+                    }
+                    break;
+                case Counter.BATTERY_LEVEL_SERVICE:
+                    for (BluetoothGattCharacteristic gattCharacteristic : gattCharacteristics) {
+                        if (Counter.BATTERY_LEVEL.equals(gattCharacteristic.getUuid().toString())) {
+                            Log.v(TAG, "Reading battery level characteristic.");
+                            batteryLevelCharacteristic = gattCharacteristic;
+                            bluetoothLeService.readCharacteristic(batteryLevelCharacteristic);
+                            bluetoothLeService.setCharacteristicNotification(batteryLevelCharacteristic, true);
+                        }
+                    }
+                    break;
             }
-            gattCharacteristicData.add(gattCharacteristicGroupData);
         }
     }
 
-    private final ServiceConnection mServiceConnection = new ServiceConnection() {
+    private final ServiceConnection serviceConnection = new ServiceConnection() {
 
         @Override
         public void onServiceConnected(ComponentName componentName, IBinder service) {

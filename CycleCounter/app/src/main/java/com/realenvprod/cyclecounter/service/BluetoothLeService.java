@@ -19,18 +19,18 @@ import android.os.HandlerThread;
 import android.os.IBinder;
 import android.support.annotation.NonNull;
 import android.util.Log;
-
 import com.realenvprod.cyclecounter.CycleApplication;
 import com.realenvprod.cyclecounter.bluetooth.BLEScanResult;
 import com.realenvprod.cyclecounter.counter.Counter;
 import com.realenvprod.cyclecounter.counter.UnknownCounterAdapter;
 import com.realenvprod.cyclecounter.counter.db.CounterDatabaseContract;
 import com.realenvprod.cyclecounter.notification.CycleSensorDiscoveredNotification;
-
 import org.greenrobot.eventbus.EventBus;
 
 import java.util.Arrays;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Queue;
 import java.util.UUID;
 
 public class BluetoothLeService extends Service {
@@ -41,28 +41,97 @@ public class BluetoothLeService extends Service {
     private static final long SCAN_PERIOD = 10000;
 
     private static final int STATE_DISCONNECTED = 0;
-    private static final int STATE_CONNECTING = 1;
-    private static final int STATE_CONNECTED = 2;
+    private static final int STATE_CONNECTING   = 1;
+    private static final int STATE_CONNECTED    = 2;
 
-    public final static String ACTION_GATT_CONNECTED = BluetoothLeService.class.getCanonicalName() + ".ACTION_GATT_CONNECTED";
-    public final static String ACTION_GATT_DISCONNECTED = BluetoothLeService.class.getCanonicalName() + ".ACTION_GATT_DISCONNECTED";
-    public final static String ACTION_GATT_SERVICES_DISCOVERED = BluetoothLeService.class.getCanonicalName() + ".ACTION_GATT_SERVICES_DISCOVERED";
-    public final static String ACTION_DATA_AVAILABLE = BluetoothLeService.class.getCanonicalName() + ".ACTION_DATA_AVAILABLE";
-    public final static String EXTRA_DATA = BluetoothLeService.class.getCanonicalName() + ".EXTRA_DATA";
+    public final static String ACTION_GATT_CONNECTED           = BluetoothLeService.class.getCanonicalName()
+                                                                 + ".ACTION_GATT_CONNECTED";
+    public final static String ACTION_GATT_DISCONNECTED        = BluetoothLeService.class.getCanonicalName()
+                                                                 + ".ACTION_GATT_DISCONNECTED";
+    public final static String ACTION_GATT_SERVICES_DISCOVERED = BluetoothLeService.class.getCanonicalName()
+                                                                 + ".ACTION_GATT_SERVICES_DISCOVERED";
+    public final static String ACTION_DATA_AVAILABLE           = BluetoothLeService.class.getCanonicalName()
+                                                                 + ".ACTION_DATA_AVAILABLE";
+    public final static String EXTRA_DATA                      = BluetoothLeService.class.getCanonicalName()
+                                                                 + ".EXTRA_DATA";
+    public final static String EXTRA_DATA_UUID                 = BluetoothLeService.class.getCanonicalName()
+                                                                 + ".EXTRA_DATA_UUID";
+    public final static String EXTRA_CYCLE_COUNT_DATA          = BluetoothLeService.class.getCanonicalName()
+                                                                 + ".EXTRA_CYCLE_COUNT_DATA";
+    public final static String EXTRA_BATTERY_DATA              = BluetoothLeService.class.getCanonicalName()
+                                                                 + ".EXTRA_BATTERY_DATA";
 
-    public static final UUID UUID_BATTERY_LEVEL = UUID.fromString(Counter.BATTERY_LEVEL);
-    public static final UUID UUID_CYCLE_COUNT = UUID.fromString(Counter.CYCLE_COUNT);
+    public static final UUID UUID_MODEL_NUMBER      = UUID.fromString(Counter.MODEL_NUMBER_STRING);
+    public static final UUID UUID_HARDWARE_REVISION = UUID.fromString(Counter.HARDWARE_REVISION_STRING);
+    public static final UUID UUID_SOFTWARE_REVISION = UUID.fromString(Counter.SOFTWARE_REVISION_STRING);
+    public static final UUID UUID_CYCLE_COUNT       = UUID.fromString(Counter.CYCLE_COUNT);
+    public static final UUID UUID_BATTERY_LEVEL     = UUID.fromString(Counter.BATTERY_LEVEL);
 
-    private BluetoothAdapter mBluetoothAdapter;
-    private String mBluetoothDeviceAddress;
-    private BluetoothGatt    mBluetoothGatt;
-    private int mConnectionState = STATE_DISCONNECTED;
+    private BluetoothAdapter bluetoothAdapter;
+    private String           bluetoothDeviceAddress;
+    private BluetoothGatt    bluetoothGatt;
+    private int connectionState = STATE_DISCONNECTED;
     private boolean scanning;
 
     private HandlerThread handlerThread;
     private Handler       handler;
 
-    private final IBinder mBinder = new LocalBinder();
+    private final IBinder localBinder = new LocalBinder();
+
+    private final Queue<BLETask> bleTasks = new LinkedList<>();
+
+    private final Object BLETaskLock = new Object();
+
+    private class BLETask {
+
+        private final Runnable runnable;
+
+        BLETask(@NonNull Runnable runnable) {
+            this.runnable = runnable;
+        }
+
+        void execute() {
+            synchronized (BLETaskLock) {
+                runnable.run();
+                try {
+                    BLETaskLock.wait();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                handler.post(serviceTaskQueue);
+            }
+        }
+    }
+
+    private final Runnable serviceTaskQueue = new Runnable() {
+        @Override
+        public void run() {
+            Log.d(TAG, "Servicing BLE task queue.");
+            final BLETask task = bleTasks.poll();
+            if (task != null) {
+                task.execute();
+            } else {
+                handler.postDelayed(serviceTaskQueue, 1000);
+            }
+        }
+    };
+
+    private final Runnable scanRunnable = new Runnable() {
+        @Override
+        public void run() {
+            Log.d(TAG, "Halting Scan.");
+            scanning = false;
+            bluetoothAdapter.stopLeScan(leScanCallback);
+            handler.postDelayed(rescanRunnable, SCAN_PERIOD);
+        }
+    };
+
+    private final Runnable rescanRunnable = new Runnable() {
+        @Override
+        public void run() {
+            scanLeDevice(true);
+        }
+    };
 
     public class LocalBinder extends Binder {
         public BluetoothLeService getService() {
@@ -78,7 +147,7 @@ public class BluetoothLeService extends Service {
 
     @Override
     public IBinder onBind(Intent intent) {
-        return mBinder;
+        return localBinder;
     }
 
     @Override
@@ -96,7 +165,7 @@ public class BluetoothLeService extends Service {
         // BluetoothAdapter through BluetoothManager.
         final BluetoothManager bluetoothManager =
                 (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
-        mBluetoothAdapter = bluetoothManager.getAdapter();
+        bluetoothAdapter = bluetoothManager.getAdapter();
 
         scanLeDevice(true);
 
@@ -106,27 +175,17 @@ public class BluetoothLeService extends Service {
     public void scanLeDevice(final boolean enable) {
         if (enable) {
             // Stops scanning after a pre-defined scan period.
-            handler.postDelayed(new Runnable() {
-                @Override
-                public void run() {
-                    Log.d(TAG, "Halting Scan.");
-                    scanning = false;
-                    mBluetoothAdapter.stopLeScan(mLeScanCallback);
-                    handler.postDelayed(new Runnable() {
-                        @Override public void run() {
-                            scanLeDevice(true);
-                        }
-                    }, SCAN_PERIOD);
-                }
-            }, SCAN_PERIOD);
+            handler.postDelayed(scanRunnable, SCAN_PERIOD);
 
             scanning = true;
             Log.d(TAG, "Scanning...");
-            mBluetoothAdapter.startLeScan(mLeScanCallback);
+            bluetoothAdapter.startLeScan(leScanCallback);
         } else {
             Log.d(TAG, "Halting Scan.");
             scanning = false;
-            mBluetoothAdapter.stopLeScan(mLeScanCallback);
+            handler.removeCallbacks(rescanRunnable);
+            handler.removeCallbacks(scanRunnable);
+            bluetoothAdapter.stopLeScan(leScanCallback);
         }
     }
 
@@ -141,34 +200,37 @@ public class BluetoothLeService extends Service {
      * callback.
      */
     public boolean connect(@NonNull final String address) {
-        if (mBluetoothAdapter == null || address == null) {
+        if (bluetoothAdapter == null) {
             Log.w(TAG, "BluetoothAdapter not initialized or unspecified address.");
             return false;
         }
 
+        scanLeDevice(false);
+        handler.post(serviceTaskQueue);
+
         // Previously connected device.  Try to reconnect.
-        if (mBluetoothDeviceAddress != null && address.equals(mBluetoothDeviceAddress)
-            && mBluetoothGatt != null) {
-            Log.d(TAG, "Trying to use an existing mBluetoothGatt for connection.");
-            if (mBluetoothGatt.connect()) {
-                mConnectionState = STATE_CONNECTING;
+        if (bluetoothDeviceAddress != null && address.equals(bluetoothDeviceAddress)
+            && bluetoothGatt != null) {
+            Log.d(TAG, "Trying to use an existing bluetoothGatt for connection.");
+            if (bluetoothGatt.connect()) {
+                connectionState = STATE_CONNECTING;
                 return true;
             } else {
                 return false;
             }
         }
 
-        final BluetoothDevice device = mBluetoothAdapter.getRemoteDevice(address);
+        final BluetoothDevice device = bluetoothAdapter.getRemoteDevice(address);
         if (device == null) {
             Log.w(TAG, "Device not found.  Unable to connect.");
             return false;
         }
         // We want to directly connect to the device, so we are setting the autoConnect
         // parameter to false.
-        mBluetoothGatt = device.connectGatt(this, false, mGattCallback);
+        bluetoothGatt = device.connectGatt(this, false, gattCallback);
         Log.d(TAG, "Trying to create a new connection.");
-        mBluetoothDeviceAddress = address;
-        mConnectionState = STATE_CONNECTING;
+        bluetoothDeviceAddress = address;
+        connectionState = STATE_CONNECTING;
         return true;
     }
 
@@ -179,11 +241,13 @@ public class BluetoothLeService extends Service {
      * callback.
      */
     public void disconnect() {
-        if (mBluetoothAdapter == null || mBluetoothGatt == null) {
+        if (bluetoothAdapter == null || bluetoothGatt == null) {
             Log.w(TAG, "BluetoothAdapter not initialized");
             return;
         }
-        mBluetoothGatt.disconnect();
+        bluetoothGatt.disconnect();
+        handler.removeCallbacks(serviceTaskQueue);
+        scanLeDevice(true);
     }
 
     /**
@@ -191,27 +255,33 @@ public class BluetoothLeService extends Service {
      * released properly.
      */
     public void close() {
-        if (mBluetoothGatt == null) {
+        if (bluetoothGatt == null) {
             return;
         }
-        mBluetoothGatt.close();
-        mBluetoothGatt = null;
-        mBluetoothDeviceAddress = null;
+        bluetoothGatt.close();
+        bluetoothGatt = null;
+        bluetoothDeviceAddress = null;
     }
 
     /**
      * Request a read on a given {@code BluetoothGattCharacteristic}. The read result is reported
-     * asynchronously through the {@code BluetoothGattCallback#onCharacteristicRead(android.bluetooth.BluetoothGatt, android.bluetooth.BluetoothGattCharacteristic, int)}
+     * asynchronously through the {@code BluetoothGattCallback#onCharacteristicRead(android.bluetooth.BluetoothGatt,
+     * android.bluetooth.BluetoothGattCharacteristic, int)}
      * callback.
      *
      * @param characteristic The characteristic to read from.
      */
-    public void readCharacteristic(BluetoothGattCharacteristic characteristic) {
-        if (mBluetoothAdapter == null || mBluetoothGatt == null) {
+    public synchronized void readCharacteristic(final BluetoothGattCharacteristic characteristic) {
+        if (bluetoothAdapter == null || bluetoothGatt == null) {
             Log.w(TAG, "BluetoothAdapter not initialized");
             return;
         }
-        mBluetoothGatt.readCharacteristic(characteristic);
+        bleTasks.add(new BLETask(new Runnable() {
+            @Override
+            public void run() {
+                bluetoothGatt.readCharacteristic(characteristic);
+            }
+        }));
     }
 
     /**
@@ -220,21 +290,25 @@ public class BluetoothLeService extends Service {
      * @param characteristic Characteristic to act on.
      * @param enabled        If true, enable notification.  False otherwise.
      */
-    public void setCharacteristicNotification(BluetoothGattCharacteristic characteristic,
-                                              boolean enabled) {
-        if (mBluetoothAdapter == null || mBluetoothGatt == null) {
+    public synchronized void setCharacteristicNotification(final BluetoothGattCharacteristic characteristic,
+                                                           final boolean enabled) {
+        if (bluetoothAdapter == null || bluetoothGatt == null) {
             Log.w(TAG, "BluetoothAdapter not initialized");
             return;
         }
-        mBluetoothGatt.setCharacteristicNotification(characteristic, enabled);
+        bleTasks.add(new BLETask(new Runnable() {
+            @Override
+            public void run() {
+                bluetoothGatt.setCharacteristicNotification(characteristic, enabled);
 
-        // This is specific to Heart Rate Measurement.
-        if (UUID_CYCLE_COUNT.equals(characteristic.getUuid())) {
-            BluetoothGattDescriptor descriptor = characteristic.getDescriptor(
-                UUID.fromString(Counter.CLIENT_CHARACTERISTIC_CONFIG));
-            descriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
-            mBluetoothGatt.writeDescriptor(descriptor);
-        }
+                if (UUID_CYCLE_COUNT.equals(characteristic.getUuid()) || UUID_BATTERY_LEVEL.equals(characteristic.getUuid())) {
+                    BluetoothGattDescriptor descriptor = characteristic.getDescriptor(
+                            UUID.fromString(Counter.CLIENT_CHARACTERISTIC_CONFIG));
+                    descriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
+                    bluetoothGatt.writeDescriptor(descriptor);
+                }
+            }
+        }));
     }
 
     /**
@@ -244,9 +318,11 @@ public class BluetoothLeService extends Service {
      * @return A {@code List} of supported services.
      */
     public List<BluetoothGattService> getSupportedGattServices() {
-        if (mBluetoothGatt == null) return null;
+        if (bluetoothGatt == null) {
+            return null;
+        }
 
-        return mBluetoothGatt.getServices();
+        return bluetoothGatt.getServices();
     }
 
     private void broadcastUpdate(final String action) {
@@ -254,25 +330,29 @@ public class BluetoothLeService extends Service {
         sendBroadcast(intent);
     }
 
-    private void broadcastUpdate(final String action,
-                                 final BluetoothGattCharacteristic characteristic) {
+    private void broadcastUpdate(final String action, final BluetoothGattCharacteristic characteristic) {
+        final UUID uuid = characteristic.getUuid();
         final Intent intent = new Intent(action);
-
-        if (UUID_BATTERY_LEVEL.equals(characteristic.getUuid())) {
+        intent.putExtra(EXTRA_DATA_UUID, uuid.toString());
+        if (UUID_MODEL_NUMBER.equals(uuid) || UUID_HARDWARE_REVISION.equals(uuid)
+            || UUID_SOFTWARE_REVISION.equals(uuid)) {
+            intent.putExtra(EXTRA_DATA, characteristic.getStringValue(0));
+        } else if (UUID_CYCLE_COUNT.equals(uuid)) {
+            final long cycleCount = characteristic.getIntValue(BluetoothGattCharacteristic.FORMAT_UINT32, 0);
+            Log.d(TAG, String.format("Received cycle count: %d", cycleCount));
+            intent.putExtra(EXTRA_DATA, cycleCount);
+        } else if (UUID_BATTERY_LEVEL.equals(uuid)) {
             final int batteryLevel = characteristic.getIntValue(BluetoothGattCharacteristic.FORMAT_UINT8, 0);
             Log.d(TAG, String.format("Received battery level: %d%%", batteryLevel));
-            intent.putExtra(EXTRA_DATA, String.valueOf(batteryLevel));
-        } else if (UUID_CYCLE_COUNT.equals(characteristic.getUuid())) {
-            final int cycleCount = characteristic.getIntValue(BluetoothGattCharacteristic.FORMAT_UINT32, 0);
-            Log.d(TAG, String.format("Received cycle count: %d", cycleCount));
-            intent.putExtra(EXTRA_DATA, String.valueOf(cycleCount));
+            intent.putExtra(EXTRA_DATA, batteryLevel);
         } else {
             // For all other profiles, writes the data formatted in HEX.
             final byte[] data = characteristic.getValue();
             if (data != null && data.length > 0) {
                 final StringBuilder stringBuilder = new StringBuilder(data.length);
-                for (byte byteChar : data)
+                for (byte byteChar : data) {
                     stringBuilder.append(String.format("%02X ", byteChar));
+                }
                 intent.putExtra(EXTRA_DATA, new String(data) + "\n" + stringBuilder.toString());
             }
         }
@@ -280,7 +360,7 @@ public class BluetoothLeService extends Service {
     }
 
     // Device scan callback.
-    private final BluetoothAdapter.LeScanCallback mLeScanCallback =
+    private final BluetoothAdapter.LeScanCallback leScanCallback =
             new BluetoothAdapter.LeScanCallback() {
 
                 @Override
@@ -289,7 +369,7 @@ public class BluetoothLeService extends Service {
                         return;
                     }
                     if (scanning) {
-                        mBluetoothAdapter.stopLeScan(mLeScanCallback);
+                        bluetoothAdapter.stopLeScan(leScanCallback);
                         scanning = false;
                     }
                     if (Counter.isAdvertisement(scanRecord)) {
@@ -306,7 +386,8 @@ public class BluetoothLeService extends Service {
                                     Log.d(TAG, "Main activity is visible, it will show a dialog.");
                                 } else {
                                     Log.d(TAG, "Main activity is not visible, showing notification.");
-                                    CycleSensorDiscoveredNotification.notify(BluetoothLeService.this, counter.address, 1);
+                                    CycleSensorDiscoveredNotification
+                                            .notify(BluetoothLeService.this, counter.address, 1);
                                 }
                             } else {
                                 Log.d(TAG, "Ignoring counter - already seen.");
@@ -337,22 +418,21 @@ public class BluetoothLeService extends Service {
 
     // Implements callback methods for GATT events that the app cares about.  For example,
     // connection change and services discovered.
-    private final BluetoothGattCallback mGattCallback = new BluetoothGattCallback() {
+    private final BluetoothGattCallback gattCallback = new BluetoothGattCallback() {
         @Override
         public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
             String intentAction;
             if (newState == BluetoothProfile.STATE_CONNECTED) {
                 intentAction = ACTION_GATT_CONNECTED;
-                mConnectionState = STATE_CONNECTED;
+                connectionState = STATE_CONNECTED;
                 broadcastUpdate(intentAction);
                 Log.i(TAG, "Connected to GATT server.");
                 // Attempts to discover services after successful connection.
-                Log.i(TAG, "Attempting to start service discovery:" +
-                    mBluetoothGatt.discoverServices());
-
+                boolean result = bluetoothGatt.discoverServices();
+                Log.i(TAG, "Attempting to start service discovery:" + result);
             } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
                 intentAction = ACTION_GATT_DISCONNECTED;
-                mConnectionState = STATE_DISCONNECTED;
+                connectionState = STATE_DISCONNECTED;
                 Log.i(TAG, "Disconnected from GATT server.");
                 broadcastUpdate(intentAction);
             }
@@ -371,8 +451,18 @@ public class BluetoothLeService extends Service {
         public void onCharacteristicRead(BluetoothGatt gatt,
                                          BluetoothGattCharacteristic characteristic,
                                          int status) {
-            if (status == BluetoothGatt.GATT_SUCCESS) {
-                broadcastUpdate(ACTION_DATA_AVAILABLE, characteristic);
+            synchronized (BLETaskLock) {
+                if (status == BluetoothGatt.GATT_SUCCESS) {
+                    broadcastUpdate(ACTION_DATA_AVAILABLE, characteristic);
+                }
+                BLETaskLock.notify();
+            }
+        }
+
+        @Override
+        public void onDescriptorWrite(BluetoothGatt gatt, BluetoothGattDescriptor descriptor, int status) {
+            synchronized (BLETaskLock) {
+                BLETaskLock.notify();
             }
         }
 
