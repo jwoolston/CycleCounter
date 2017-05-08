@@ -40,7 +40,7 @@ import java.util.Map;
 public class SensorMapFragment extends SupportMapFragment implements OnMapReadyCallback, LoaderCallbacks<Cursor>,
                                                                      OnClickListener {
 
-    private static final String TAG = "SensorMapFragment";
+    public static final String TAG = "SensorMapFragment";
 
     private GoogleMap            map;
     private Cursor               devicesCursor;

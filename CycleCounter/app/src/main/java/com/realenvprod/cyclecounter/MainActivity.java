@@ -148,25 +148,29 @@ public class MainActivity extends AppCompatActivity
     private void showKnownCounterList() {
         Log.d(TAG, "Showing known sensor list.");
         Fragment fragment = KnownCounterFragment.newInstance();
-        getSupportFragmentManager().beginTransaction().replace(R.id.fragment_container, fragment).commit();
+        getSupportFragmentManager().beginTransaction().replace(R.id.fragment_container, fragment)
+                .addToBackStack(KnownCounterFragment.TAG).commit();
     }
 
     private void showUnknownCounterList() {
         Log.d(TAG, "Showing unknown sensor list.");
         Fragment fragment = UnknownCounterFragment.newInstance();
-        getSupportFragmentManager().beginTransaction().replace(R.id.fragment_container, fragment).commit();
+        getSupportFragmentManager().beginTransaction().replace(R.id.fragment_container, fragment)
+                .addToBackStack(UnknownCounterFragment.TAG).commit();
     }
 
     private void showMap() {
         Log.d(TAG, "Showing map fragment.");
         final Fragment fragment = new SensorMapFragment();
-        getSupportFragmentManager().beginTransaction().replace(R.id.fragment_container, fragment).commit();
+        getSupportFragmentManager().beginTransaction().replace(R.id.fragment_container, fragment)
+                .addToBackStack(SensorMapFragment.TAG).commit();
     }
 
     private void showAddCounterFragment(@NonNull Counter counter) {
         Log.d(TAG, "Showing add counter fragment.");
         final Fragment fragment = AddCounterFragment.newInstance(counter);
-        getSupportFragmentManager().beginTransaction().replace(R.id.fragment_container, fragment).commit();
+        getSupportFragmentManager().beginTransaction().replace(R.id.fragment_container, fragment)
+                .addToBackStack(AddCounterFragment.TAG).commit();
     }
 
     @Override

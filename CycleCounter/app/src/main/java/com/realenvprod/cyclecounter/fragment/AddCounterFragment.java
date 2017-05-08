@@ -7,15 +7,19 @@ import android.bluetooth.BluetoothGattCharacteristic;
 import android.bluetooth.BluetoothGattService;
 import android.content.ComponentName;
 import android.content.ContentValues;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.support.annotation.IntRange;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
+import android.support.v7.app.AlertDialog;
+import android.support.v7.app.AlertDialog.Builder;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -39,18 +43,18 @@ import java.util.List;
  */
 public class AddCounterFragment extends Fragment implements GattUpdateReceiver.OnGattUpdate {
 
-    private static final String TAG = "AddCounterFragment";
+    public static final String TAG = "AddCounterFragment";
 
     private static final String ARG_COUNTER = "counter";
 
     private BluetoothGattCharacteristic cycleCountCharacteristic;
     private BluetoothGattCharacteristic batteryLevelCharacteristic;
-    private BluetoothLeService bluetoothLeService;
-    private GattUpdateReceiver gattUpdateReceiver;
-    private Counter counter;
+    private BluetoothLeService          bluetoothLeService;
+    private GattUpdateReceiver          gattUpdateReceiver;
+    private Counter                     counter;
 
-    private long count = -1;
-    private int battery = -1;
+    private long count   = -1;
+    private int  battery = -1;
 
     private EditText aliasView;
     private TextView addressView;
@@ -200,14 +204,39 @@ public class AddCounterFragment extends Fragment implements GattUpdateReceiver.O
         values.put(CounterEntry.COLUMN_NAME_LAST_COUNT, count);
         values.put(CounterEntry.COLUMN_NAME_LATITUDE, 0);
         values.put(CounterEntry.COLUMN_NAME_LONGITUDE, 0);
-        getContext().getContentResolver().insert(CounterDatabaseContract.COUNTERS_URI, values);
+        final Uri rowId = getContext().getContentResolver().insert(CounterDatabaseContract.COUNTERS_URI, values);
+
+        AlertDialog.Builder builder = new Builder(getActivity());
+
+        if (rowId != null) {
+            builder.setTitle("Counter Saved")
+                    .setMessage("New counter " + aliasView.getText().toString() + " was successfully saved.")
+                    .setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialogInterface, int i) {
+                            getActivity().getSupportFragmentManager().popBackStack();
+                            dialogInterface.dismiss();
+                        }
+                    }).show();
+        } else {
+            builder.setTitle("Counter Save Failed")
+                    .setMessage("Error occured while saving new counter " + aliasView.getText().toString())
+                    .setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialogInterface, int i) {
+                            dialogInterface.dismiss();
+                        }
+                    }).show();
+        }
     }
 
     // Demonstrates how to iterate through the supported GATT Services/Characteristics.
     // In this sample, we populate the data structure that is bound to the ExpandableListView
     // on the UI.
     private void displayAndObserveGattServices(List<BluetoothGattService> gattServices) {
-        if (gattServices == null) return;
+        if (gattServices == null) {
+            return;
+        }
         String uuid = null;
 
         // Loops through available GATT Services.
