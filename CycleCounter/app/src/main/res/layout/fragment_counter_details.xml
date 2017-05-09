@@ -8,7 +8,6 @@
                 android:paddingTop="?android:attr/actionBarSize"
                 tools:context="com.realenvprod.cyclecounter.fragment.AddCounterFragment">
 
-
     <TextView
         android:id="@+id/alias_label"
         android:layout_width="wrap_content"
@@ -93,7 +92,7 @@
             android:id="@+id/current_battery_icon"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_alignBottom="@+id/current_battery_label"
+            android:layout_alignBottom="@+id/current_battery_entry"
             android:layout_toStartOf="@+id/current_battery_entry"/>
 
         <TextView
@@ -156,10 +155,10 @@
     <android.support.design.widget.FloatingActionButton
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:id="@+id/save_counter"
+        android:id="@+id/delete_counter"
         android:layout_margin="4dp"
         android:layout_alignParentEnd="true"
         android:layout_alignParentBottom="true"
-        android:src="@drawable/ic_check_black_24dp"/>
+        android:src="@drawable/ic_delete_black_24dp"/>
 
 </RelativeLayout>

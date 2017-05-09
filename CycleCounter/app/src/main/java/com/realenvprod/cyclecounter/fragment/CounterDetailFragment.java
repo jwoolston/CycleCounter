@@ -6,21 +6,15 @@ import static android.content.Context.BIND_AUTO_CREATE;
 import android.bluetooth.BluetoothGattCharacteristic;
 import android.bluetooth.BluetoothGattService;
 import android.content.ComponentName;
-import android.content.ContentValues;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
-import android.location.Location;
-import android.net.Uri;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.support.annotation.IntRange;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
-import android.support.v7.app.AlertDialog;
-import android.support.v7.app.AlertDialog.Builder;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -31,22 +25,18 @@ import android.widget.TextView;
 import com.realenvprod.cyclecounter.R;
 import com.realenvprod.cyclecounter.bluetooth.GattUpdateReceiver;
 import com.realenvprod.cyclecounter.counter.Counter;
-import com.realenvprod.cyclecounter.counter.db.CounterDatabaseContract;
-import com.realenvprod.cyclecounter.counter.db.CounterDatabaseContract.CounterEntry;
 import com.realenvprod.cyclecounter.service.BluetoothLeService;
-import com.realenvprod.cyclecounter.view.BatteryView;
-import org.greenrobot.eventbus.EventBus;
 
 import java.util.List;
 
 /**
  * A simple {@link Fragment} subclass.
- * Use the {@link AddCounterFragment#newInstance} factory method to
+ * Use the {@link CounterDetailFragment#newInstance} factory method to
  * create an instance of this fragment.
  */
-public class AddCounterFragment extends Fragment implements GattUpdateReceiver.OnGattUpdate {
+public class CounterDetailFragment extends Fragment implements GattUpdateReceiver.OnGattUpdate {
 
-    public static final String TAG = "AddCounterFragment";
+    public static final String TAG = "CounterDetailFragment";
 
     private static final String ARG_COUNTER = "counter";
 
@@ -56,21 +46,17 @@ public class AddCounterFragment extends Fragment implements GattUpdateReceiver.O
     private GattUpdateReceiver          gattUpdateReceiver;
     private Counter                     counter;
 
-    private long count   = -1;
-    private int  battery = -1;
-
-    private EditText aliasView;
+    private TextView aliasView;
     private TextView addressView;
     private TextView countView;
     private TextView batteryView;
     private TextView modelView;
     private TextView hardwareView;
     private TextView softwareView;
-    private BatteryView batteryIcon;
 
     private boolean connected = false;
 
-    public AddCounterFragment() {
+    public CounterDetailFragment() {
         // Required empty public constructor
     }
 
@@ -82,8 +68,8 @@ public class AddCounterFragment extends Fragment implements GattUpdateReceiver.O
      *
      * @return A new instance of fragment AddCounterFragment.
      */
-    public static AddCounterFragment newInstance(@NonNull Counter counter) {
-        AddCounterFragment fragment = new AddCounterFragment();
+    public static CounterDetailFragment newInstance(@NonNull Counter counter) {
+        CounterDetailFragment fragment = new CounterDetailFragment();
         Bundle args = new Bundle();
         args.putParcelable(ARG_COUNTER, counter);
         fragment.setArguments(args);
@@ -103,7 +89,7 @@ public class AddCounterFragment extends Fragment implements GattUpdateReceiver.O
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         // Inflate the layout for this fragment
-        final View view = inflater.inflate(R.layout.fragment_add_counter, container, false);
+        final View view = inflater.inflate(R.layout.fragment_counter_details, container, false);
         aliasView = (EditText) view.findViewById(R.id.alias_input);
         addressView = (TextView) view.findViewById(R.id.address_entry);
         countView = (TextView) view.findViewById(R.id.current_count_entry);
@@ -111,11 +97,10 @@ public class AddCounterFragment extends Fragment implements GattUpdateReceiver.O
         modelView = (TextView) view.findViewById(R.id.model_number_entry);
         hardwareView = (TextView) view.findViewById(R.id.hardware_revision_entry);
         softwareView = (TextView) view.findViewById(R.id.software_revision_entry);
-        batteryIcon = (BatteryView) view.findViewById(R.id.current_battery_icon);
-        (view.findViewById(R.id.save_counter)).setOnClickListener(new OnClickListener() {
+        view.findViewById(R.id.delete_counter).setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View view) {
-                saveCounter();
+                deleteCounter();
             }
         });
         return view;
@@ -130,14 +115,14 @@ public class AddCounterFragment extends Fragment implements GattUpdateReceiver.O
         modelView = null;
         hardwareView = null;
         softwareView = null;
-        batteryIcon = null;
         super.onDestroyView();
     }
 
     @Override
     public void onResume() {
         super.onResume();
-        getActivity().setTitle("Add Cycle Counter");
+        getActivity().setTitle("Counter Details");
+        aliasView.setText(counter.alias);
         addressView.setText(counter.address);
         getContext().registerReceiver(gattUpdateReceiver, makeGattUpdateIntentFilter());
         Intent gattServiceIntent = new Intent(getContext(), BluetoothLeService.class);
@@ -169,15 +154,12 @@ public class AddCounterFragment extends Fragment implements GattUpdateReceiver.O
     @Override
     public void onCycleCountUpdate(@IntRange(from = 0) long cycleCount) {
         Log.d(TAG, "Cycle count update: " + cycleCount);
-        count = cycleCount;
         countView.setText(cycleCount >= 0 ? "" + cycleCount : "Error");
     }
 
     @Override
     public void onBatteryUpdate(@IntRange(from = 0, to = 100) int batteryLevel) {
         Log.d(TAG, "Battery update: " + batteryLevel + "%");
-        battery = batteryLevel;
-        batteryIcon.setBatteryLevel(batteryLevel);
         batteryView.setText(batteryLevel >= 0 ? "" + batteryLevel + "%" : "Error");
     }
 
@@ -199,43 +181,8 @@ public class AddCounterFragment extends Fragment implements GattUpdateReceiver.O
         softwareView.setText(revision);
     }
 
-    private void saveCounter() {
-        final long time = System.currentTimeMillis();
-        final Location location = EventBus.getDefault().getStickyEvent(Location.class);
-        final ContentValues values = new ContentValues();
-        values.put(CounterEntry.COLUMN_NAME_ALIAS, aliasView.getText().toString());
-        values.put(CounterEntry.COLUMN_NAME_ADDRESS, counter.address);
-        values.put(CounterEntry.COLUMN_NAME_FIRST_CONNECTED, time);
-        values.put(CounterEntry.COLUMN_NAME_INITIAL_COUNT, count);
-        values.put(CounterEntry.COLUMN_NAME_LAST_BATTERY, battery);
-        values.put(CounterEntry.COLUMN_NAME_LAST_CONNECTED, time);
-        values.put(CounterEntry.COLUMN_NAME_LAST_COUNT, count);
-        values.put(CounterEntry.COLUMN_NAME_LATITUDE, location != null ? location.getLatitude() : 0);
-        values.put(CounterEntry.COLUMN_NAME_LONGITUDE, location != null ? location.getLongitude() : 0);
-        final Uri rowId = getContext().getContentResolver().insert(CounterDatabaseContract.COUNTERS_URI, values);
+    private void deleteCounter() {
 
-        final AlertDialog.Builder builder = new Builder(getActivity());
-
-        if (rowId != null) {
-            builder.setTitle("Counter Saved")
-                    .setMessage("New counter " + aliasView.getText().toString() + " was successfully saved.")
-                    .setPositiveButton("OK", new DialogInterface.OnClickListener() {
-                        @Override
-                        public void onClick(DialogInterface dialogInterface, int i) {
-                            getActivity().getSupportFragmentManager().popBackStack();
-                            dialogInterface.dismiss();
-                        }
-                    }).show();
-        } else {
-            builder.setTitle("Counter Save Failed")
-                    .setMessage("Error occured while saving new counter " + aliasView.getText().toString())
-                    .setPositiveButton("OK", new DialogInterface.OnClickListener() {
-                        @Override
-                        public void onClick(DialogInterface dialogInterface, int i) {
-                            dialogInterface.dismiss();
-                        }
-                    }).show();
-        }
     }
 
     private void displayAndObserveGattServices(List<BluetoothGattService> gattServices) {
