@@ -44,6 +44,8 @@ public class BluetoothLeService extends Service {
     private static final int STATE_CONNECTING   = 1;
     private static final int STATE_CONNECTED    = 2;
 
+    public final static String ACTION_GATT_CONNECTING          = BluetoothLeService.class.getCanonicalName()
+                                                                 + ".ACTION_GATT_CONNECTING";
     public final static String ACTION_GATT_CONNECTED           = BluetoothLeService.class.getCanonicalName()
                                                                  + ".ACTION_GATT_CONNECTED";
     public final static String ACTION_GATT_DISCONNECTED        = BluetoothLeService.class.getCanonicalName()
@@ -214,6 +216,7 @@ public class BluetoothLeService extends Service {
             Log.d(TAG, "Trying to use an existing bluetoothGatt for connection.");
             if (bluetoothGatt.connect()) {
                 connectionState = STATE_CONNECTING;
+                broadcastUpdate(ACTION_GATT_CONNECTING);
                 return true;
             } else {
                 return false;
@@ -231,6 +234,7 @@ public class BluetoothLeService extends Service {
         Log.d(TAG, "Trying to create a new connection.");
         bluetoothDeviceAddress = address;
         connectionState = STATE_CONNECTING;
+        broadcastUpdate(ACTION_GATT_CONNECTING);
         return true;
     }
 
@@ -301,7 +305,8 @@ public class BluetoothLeService extends Service {
             public void run() {
                 bluetoothGatt.setCharacteristicNotification(characteristic, enabled);
 
-                if (UUID_CYCLE_COUNT.equals(characteristic.getUuid()) || UUID_BATTERY_LEVEL.equals(characteristic.getUuid())) {
+                if (UUID_CYCLE_COUNT.equals(characteristic.getUuid()) || UUID_BATTERY_LEVEL
+                        .equals(characteristic.getUuid())) {
                     BluetoothGattDescriptor descriptor = characteristic.getDescriptor(
                             UUID.fromString(Counter.CLIENT_CHARACTERISTIC_CONFIG));
                     descriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);

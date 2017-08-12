@@ -14,6 +14,7 @@ import android.os.IBinder;
 import android.support.annotation.IntRange;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.annotation.StringRes;
 import android.support.v4.app.Fragment;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -47,6 +48,7 @@ public class CounterDetailFragment extends Fragment implements GattUpdateReceive
     private Counter                     counter;
 
     private TextView aliasView;
+    private TextView statusView;
     private TextView addressView;
     private TextView countView;
     private TextView batteryView;
@@ -91,6 +93,7 @@ public class CounterDetailFragment extends Fragment implements GattUpdateReceive
         // Inflate the layout for this fragment
         final View view = inflater.inflate(R.layout.fragment_counter_details, container, false);
         aliasView = (EditText) view.findViewById(R.id.alias_input);
+        statusView = (TextView) view.findViewById(R.id.status_entry);
         addressView = (TextView) view.findViewById(R.id.address_entry);
         countView = (TextView) view.findViewById(R.id.current_count_entry);
         batteryView = (TextView) view.findViewById(R.id.current_battery_entry);
@@ -103,12 +106,15 @@ public class CounterDetailFragment extends Fragment implements GattUpdateReceive
                 deleteCounter();
             }
         });
+
+        updateFromCounter(counter);
         return view;
     }
 
     @Override
     public void onDestroyView() {
         aliasView = null;
+        statusView = null;
         addressView = null;
         countView = null;
         batteryView = null;
@@ -129,6 +135,10 @@ public class CounterDetailFragment extends Fragment implements GattUpdateReceive
         getActivity().bindService(gattServiceIntent, serviceConnection, BIND_AUTO_CREATE);
     }
 
+    private void updateConnectionState(@StringRes int state) {
+        statusView.setText(state);
+    }
+
     @Override
     public void onPause() {
         getContext().unregisterReceiver(gattUpdateReceiver);
@@ -138,12 +148,16 @@ public class CounterDetailFragment extends Fragment implements GattUpdateReceive
 
     @Override
     public void onUpdateReceived(@NonNull String action, @Nullable String data) {
-        if (BluetoothLeService.ACTION_GATT_CONNECTED.equals(action)) {
+        if (BluetoothLeService.ACTION_GATT_CONNECTING.equals(action)) {
+            connected = false;
+            updateConnectionState(R.string.status_connecting);
+        } else if (BluetoothLeService.ACTION_GATT_CONNECTED.equals(action)) {
             connected = true;
-            //updateConnectionState(R.string.connected);
+            updateConnectionState(R.string.status_connected);
         } else if (BluetoothLeService.ACTION_GATT_DISCONNECTED.equals(action)) {
             connected = false;
-            //updateConnectionState(R.string.disconnected);
+            updateConnectionState(R.string.status_disconnected);
+            reconnect();
         } else if (BluetoothLeService.ACTION_GATT_SERVICES_DISCOVERED.equals(action)) {
             // Show all the supported services and characteristics on the user interface.
             final List<BluetoothGattService> services = bluetoothLeService.getSupportedGattServices();
@@ -179,6 +193,12 @@ public class CounterDetailFragment extends Fragment implements GattUpdateReceive
     public void onSoftwareRevisionString(@NonNull String revision) {
         Log.d(TAG, "Software version: " + revision);
         softwareView.setText(revision);
+    }
+
+    private void reconnect() {
+        Log.d(TAG, "Reconnecting to counter: " + counter);
+        final boolean result = bluetoothLeService.connect(counter.address);
+        Log.d(TAG, "Reconnect request successful? " + result);
     }
 
     private void updateFromCounter(@NonNull Counter counter) {
