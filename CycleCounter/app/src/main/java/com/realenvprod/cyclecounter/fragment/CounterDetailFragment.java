@@ -181,6 +181,14 @@ public class CounterDetailFragment extends Fragment implements GattUpdateReceive
         softwareView.setText(revision);
     }
 
+    private void updateFromCounter(@NonNull Counter counter) {
+        onCycleCountUpdate(counter.lastCount);
+        onBatteryUpdate((int) Math.round(counter.lastBattery));
+        onModelNumber(counter.getModelNumber());
+        onHardwareRevisionString(counter.getHardwareRevision());
+        onSoftwareRevisionString(counter.getSoftwareRevision());
+    }
+
     private void deleteCounter() {
 
     }

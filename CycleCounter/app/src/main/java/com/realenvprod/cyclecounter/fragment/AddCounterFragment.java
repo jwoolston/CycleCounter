@@ -58,6 +58,9 @@ public class AddCounterFragment extends Fragment implements GattUpdateReceiver.O
 
     private long count   = -1;
     private int  battery = -1;
+    private String modelNumber;
+    private String hardwareRevision;
+    private String softwareRevision;
 
     private EditText aliasView;
     private TextView addressView;
@@ -184,18 +187,21 @@ public class AddCounterFragment extends Fragment implements GattUpdateReceiver.O
     @Override
     public void onModelNumber(@NonNull String model) {
         Log.d(TAG, "Model number: " + model);
+        modelNumber = model;
         modelView.setText(model);
     }
 
     @Override
     public void onHardwareRevisionString(@NonNull String revision) {
         Log.d(TAG, "Hardware version: " + revision);
+        hardwareRevision = revision;
         hardwareView.setText(revision);
     }
 
     @Override
     public void onSoftwareRevisionString(@NonNull String revision) {
         Log.d(TAG, "Software version: " + revision);
+        softwareRevision = revision;
         softwareView.setText(revision);
     }
 
@@ -212,6 +218,9 @@ public class AddCounterFragment extends Fragment implements GattUpdateReceiver.O
         values.put(CounterEntry.COLUMN_NAME_LAST_COUNT, count);
         values.put(CounterEntry.COLUMN_NAME_LATITUDE, location != null ? location.getLatitude() : 0);
         values.put(CounterEntry.COLUMN_NAME_LONGITUDE, location != null ? location.getLongitude() : 0);
+        values.put(CounterEntry.COLUMN_NAME_MODEL_NUMBER, modelNumber);
+        values.put(CounterEntry.COLUMN_NAME_HARDWARE_REVISION, hardwareRevision);
+        values.put(CounterEntry.COLUMN_NAME_SOFTWARE_REVISION, softwareRevision);
         final Uri rowId = getContext().getContentResolver().insert(CounterDatabaseContract.COUNTERS_URI, values);
 
         final AlertDialog.Builder builder = new Builder(getActivity());

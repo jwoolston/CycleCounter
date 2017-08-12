@@ -65,6 +65,9 @@ public class Counter implements Parcelable {
     public final long lastCount;
     public final double lastBattery;
     public final LatLng location;
+    private String modelNumber;
+    private String hardwareRevision;
+    private String softwareRevision;
 
     public final boolean isKnown;
 
@@ -110,6 +113,9 @@ public class Counter implements Parcelable {
         lastBattery = cursor.getDouble(cursor.getColumnIndex(CounterEntry.COLUMN_NAME_LAST_BATTERY));
         location = new LatLng(cursor.getDouble(cursor.getColumnIndex(CounterEntry.COLUMN_NAME_LATITUDE)),
                               cursor.getDouble(cursor.getColumnIndex(CounterEntry.COLUMN_NAME_LONGITUDE)));
+        modelNumber = cursor.getString(cursor.getColumnIndex(CounterEntry.COLUMN_NAME_MODEL_NUMBER));
+        hardwareRevision = cursor.getString(cursor.getColumnIndex(CounterEntry.COLUMN_NAME_HARDWARE_REVISION));
+        softwareRevision = cursor.getString(cursor.getColumnIndex(CounterEntry.COLUMN_NAME_SOFTWARE_REVISION));
         isKnown = true;
     }
 
@@ -134,7 +140,34 @@ public class Counter implements Parcelable {
         lastCount = in.readLong();
         lastBattery = in.readDouble();
         location = in.readParcelable(LatLng.class.getClassLoader());
+        modelNumber = in.readString();
+        hardwareRevision = in.readString();
+        softwareRevision = in.readString();
         isKnown = in.readByte() != 0;
+    }
+
+    public String getModelNumber() {
+        return modelNumber;
+    }
+
+    public void setModelNumber(@NonNull String modelNumber) {
+        this.modelNumber = modelNumber;
+    }
+
+    public String getHardwareRevision() {
+        return hardwareRevision;
+    }
+
+    public void setHardwareRevision(@NonNull String hardwareRevision) {
+        this.hardwareRevision = hardwareRevision;
+    }
+
+    public String getSoftwareRevision() {
+        return softwareRevision;
+    }
+
+    public void setSoftwareRevision(@NonNull String softwareRevision) {
+        this.softwareRevision = softwareRevision;
     }
 
     public void updateMarker(@NonNull Marker marker) {
@@ -202,6 +235,9 @@ public class Counter implements Parcelable {
         parcel.writeLong(lastCount);
         parcel.writeDouble(lastBattery);
         parcel.writeParcelable(location, i);
+        parcel.writeString(modelNumber);
+        parcel.writeString(hardwareRevision);
+        parcel.writeString(softwareRevision);
         parcel.writeByte((byte) (isKnown ? 1 : 0));
     }
 }
