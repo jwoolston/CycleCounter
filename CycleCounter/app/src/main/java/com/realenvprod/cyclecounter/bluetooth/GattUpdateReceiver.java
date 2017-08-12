@@ -60,7 +60,7 @@ public class GattUpdateReceiver extends BroadcastReceiver {
                     updateListener.onSoftwareRevisionString(intent.getStringExtra(BluetoothLeService.EXTRA_DATA));
                     break;
                 case Counter.CYCLE_COUNT:
-                    updateListener.onCycleCountUpdate(intent.getLongExtra(BluetoothLeService.EXTRA_DATA, -1));
+                    updateListener.onCycleCountUpdate(intent.getLongExtra(BluetoothLeService.EXTRA_DATA, -1) / 2);
                     break;
                 case Counter.BATTERY_LEVEL:
                     updateListener.onBatteryUpdate(intent.getIntExtra(BluetoothLeService.EXTRA_DATA, -1));
