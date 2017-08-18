@@ -29,6 +29,7 @@
         android:inputType="text"/>
 
     <RelativeLayout
+        android:id="@+id/details_list"
         android:layout_width="wrap_content"
         android:layout_height="match_parent"
         android:layout_below="@id/alias_input"
@@ -169,6 +170,12 @@
             android:textAppearance="@style/TextAppearance.AppCompat.Medium"/>
 
     </RelativeLayout>
+
+    <com.github.mikephil.charting.charts.LineChart
+        android:layout_width="match_parent"
+        android:layout_height="200dp"
+        android:layout_alignParentBottom="true"
+        android:id="@+id/history_chart"/>
 
     <android.support.design.widget.FloatingActionButton
         android:layout_width="wrap_content"

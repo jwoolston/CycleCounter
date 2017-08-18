@@ -1,18 +1,30 @@
 package com.realenvprod.cyclecounter.fragment;
 
 
+import android.database.Cursor;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v4.app.Fragment;
+import android.support.v4.app.LoaderManager;
+import android.support.v4.content.CursorLoader;
+import android.support.v4.content.Loader;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.TextView;
+import com.github.mikephil.charting.charts.LineChart;
+import com.github.mikephil.charting.data.Entry;
+import com.github.mikephil.charting.data.LineData;
+import com.github.mikephil.charting.data.LineDataSet;
 import com.realenvprod.cyclecounter.R;
 import com.realenvprod.cyclecounter.counter.Counter;
+import com.realenvprod.cyclecounter.counter.db.CounterDatabaseContract;
+import com.realenvprod.cyclecounter.counter.db.CounterDatabaseContract.CounterEntry;
 
+import java.util.LinkedList;
 import java.util.Locale;
 
 /**
@@ -20,11 +32,16 @@ import java.util.Locale;
  * Use the {@link CounterDetailFragment#newInstance} factory method to
  * create an instance of this fragment.
  */
-public class CounterDetailFragment extends CounterFragment {
+public class CounterDetailFragment extends CounterFragment implements
+                                                           LoaderManager.LoaderCallbacks<Cursor> {
 
     public static final String TAG = "CounterDetailFragment";
 
     private static final String ARG_COUNTER = "counter";
+
+    private static final int READINGS_LOADER_ID = 0x01;
+
+    private LineData readingData;
 
     private EditText aliasView;
     private TextView addressView;
@@ -34,6 +51,7 @@ public class CounterDetailFragment extends CounterFragment {
     private TextView modelView;
     private TextView hardwareView;
     private TextView softwareView;
+    private LineChart lineChartView;
 
     public CounterDetailFragment() {
         // Required empty public constructor
@@ -56,6 +74,12 @@ public class CounterDetailFragment extends CounterFragment {
     }
 
     @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        getActivity().getSupportLoaderManager().initLoader(READINGS_LOADER_ID, null, this);
+    }
+
+    @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         // Inflate the layout for this fragment
@@ -68,6 +92,7 @@ public class CounterDetailFragment extends CounterFragment {
         modelView = (TextView) view.findViewById(R.id.model_number_entry);
         hardwareView = (TextView) view.findViewById(R.id.hardware_revision_entry);
         softwareView = (TextView) view.findViewById(R.id.software_revision_entry);
+        lineChartView = (LineChart) view.findViewById(R.id.history_chart);
         view.findViewById(R.id.delete_counter).setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -89,6 +114,7 @@ public class CounterDetailFragment extends CounterFragment {
         modelView = null;
         hardwareView = null;
         softwareView = null;
+        lineChartView = null;
         super.onDestroyView();
     }
 
@@ -109,9 +135,47 @@ public class CounterDetailFragment extends CounterFragment {
         modelView.setText(counter.getModel());
         hardwareView.setText(counter.getHardwareRevision());
         softwareView.setText(counter.getSoftwareRevision());
+        getActivity().getSupportLoaderManager().restartLoader(READINGS_LOADER_ID, null, this);
     }
 
     private void deleteCounter() {
 
+    }
+
+    @Override
+    public Loader<Cursor> onCreateLoader(int id, Bundle args) {
+        return new CursorLoader(getContext(), CounterDatabaseContract.READINGS_URI,
+                                CounterDatabaseContract.PROJECTION_READINGS_WITH_TIME,
+                                CounterDatabaseContract.SELECTION_ADDRESS_ONLY, new String[] { counter.getAddress() },
+                                null);
+    }
+
+    @Override
+    public void onLoadFinished(Loader<Cursor> loader, Cursor data) {
+        Log.d(TAG, "onLoadFinished: " + data.getCount());
+        if (data != null) {
+            final LinkedList<Entry> newData = new LinkedList<>();
+            final int timeColumn = data.getColumnIndex(CounterEntry.COLUMN_NAME_READING_TIME);
+            final int readingColumn = data.getColumnIndex(CounterEntry.COLUMN_NAME_LAST_COUNT);
+            data.moveToFirst();
+            while (!data.isAfterLast()) {
+                final long time = data.getLong(timeColumn);
+
+                newData.add(new Entry(time, data.getLong(readingColumn)));
+                data.moveToNext();
+            }
+            Log.v(TAG, "New readings dataset: " + newData);
+            data.close();
+            LineDataSet dataSet = new LineDataSet(newData, "Cycles");
+            dataSet.setColor(getResources().getColor(R.color.colorAccent));
+            readingData = new LineData(dataSet);
+            lineChartView.setData(readingData);
+            lineChartView.invalidate();
+        }
+    }
+
+    @Override
+    public void onLoaderReset(Loader<Cursor> loader) {
+        Log.d(TAG, "Loader Reset!");
     }
 }

@@ -10,9 +10,9 @@ import android.net.Uri;
  */
 public final class CounterDatabaseContract {
 
-    public static final Uri BASE_URI     = Uri.parse("content://" + CounterSensorProvider.AUTHORITY);
-    public static final Uri COUNTERS_URI = Uri.withAppendedPath(BASE_URI, CounterEntry.COUNTERS_TABLE_NAME);
-    public static final Uri READINGS_URI = Uri.withAppendedPath(BASE_URI, CounterEntry.READINGS_TABLE_NAME);
+    public static final Uri BASE_URI                      = Uri.parse("content://" + CounterSensorProvider.AUTHORITY);
+    public static final Uri COUNTERS_URI                  = Uri.withAppendedPath(BASE_URI, CounterEntry.COUNTERS_TABLE_NAME);
+    public static final Uri READINGS_URI                  = Uri.withAppendedPath(BASE_URI, CounterEntry.READINGS_TABLE_NAME);
 
     // Ensure this class can't be accidentally instantiated
     private CounterDatabaseContract() {
@@ -68,6 +68,9 @@ public final class CounterDatabaseContract {
     public static final String SQL_DELETE_READINGS = "DROP TABLE IF EXISTS " + CounterEntry.READINGS_TABLE_NAME;
 
     public static final String[] PROJECTION_ADDRESS_ONLY = new String[]{ COLUMN_NAME_ADDRESS };
+
+    public static final String[] PROJECTION_READINGS_WITH_TIME = new String[]{ CounterEntry.COLUMN_NAME_READING_TIME,
+                                                                               CounterEntry.COLUMN_NAME_LAST_COUNT };
 
     public static final String SELECTION_ADDRESS_ONLY = COLUMN_NAME_ADDRESS + " = ?";
 }
