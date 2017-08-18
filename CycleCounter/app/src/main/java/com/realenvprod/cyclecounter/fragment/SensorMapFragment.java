@@ -78,7 +78,7 @@ public class SensorMapFragment extends SupportMapFragment implements OnMapReadyC
                 devicesCursor.moveToFirst();
                 while (!devicesCursor.isAfterLast()) {
                     final Counter counter = new Counter(devicesCursor);
-                    Log.d(TAG, "Marker " + counter.alias + " location: " + counter.location);
+                    Log.d(TAG, "Marker " + counter.getAlias() + " location: " + counter.getLocation());
                     Marker marker = oldMarkers.get(counter);
                     if (marker != null) {
                         // We have a marker to update
@@ -91,7 +91,7 @@ public class SensorMapFragment extends SupportMapFragment implements OnMapReadyC
                 }
                 final LatLngBounds.Builder builder = new Builder();
                 for (Counter counter : sensorMarkers.keySet()) {
-                    builder.include(counter.location);
+                    builder.include(counter.getLocation());
                 }
 
                 // Update heatmap, if needed
@@ -110,12 +110,12 @@ public class SensorMapFragment extends SupportMapFragment implements OnMapReadyC
         final ArrayList<WeightedLatLng> data = new ArrayList<>();
         long maxCount = 1;
         for (Counter counter : sensorMarkers.keySet()) {
-            if (counter.lastCount > maxCount) {
-                maxCount = counter.lastCount;
+            if (counter.getLastCount() > maxCount) {
+                maxCount = counter.getLastCount();
             }
         }
         for (Counter counter : sensorMarkers.keySet()) {
-            data.add(new WeightedLatLng(counter.location, counter.lastConnected / ((double) maxCount)));
+            data.add(new WeightedLatLng(counter.getLocation(), counter.getLastConnected() / ((double) maxCount)));
         }
         return data;
     }

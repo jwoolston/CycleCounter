@@ -146,8 +146,8 @@ public class CounterAdapter extends RecyclerView.Adapter<CounterAdapter.ViewHold
 
         public void setData(@NonNull Counter counter) {
             this.counter = counter;
-            aliasView.setText(counter.alias);
-            addressView.setText(counter.address);
+            aliasView.setText(counter.getAlias());
+            addressView.setText(counter.getAddress());
         }
 
         @Override

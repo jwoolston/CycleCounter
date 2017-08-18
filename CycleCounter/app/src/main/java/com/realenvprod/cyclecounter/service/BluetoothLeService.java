@@ -63,12 +63,6 @@ public class BluetoothLeService extends Service {
     public final static String EXTRA_BATTERY_DATA              = BluetoothLeService.class.getCanonicalName()
                                                                  + ".EXTRA_BATTERY_DATA";
 
-    public static final UUID UUID_MODEL_NUMBER      = UUID.fromString(Counter.MODEL_NUMBER_STRING);
-    public static final UUID UUID_HARDWARE_REVISION = UUID.fromString(Counter.HARDWARE_REVISION_STRING);
-    public static final UUID UUID_SOFTWARE_REVISION = UUID.fromString(Counter.SOFTWARE_REVISION_STRING);
-    public static final UUID UUID_CYCLE_COUNT       = UUID.fromString(Counter.CYCLE_COUNT);
-    public static final UUID UUID_BATTERY_LEVEL     = UUID.fromString(Counter.BATTERY_LEVEL);
-
     private BluetoothAdapter bluetoothAdapter;
     private String           bluetoothDeviceAddress;
     private BluetoothGatt    bluetoothGatt;
@@ -268,55 +262,6 @@ public class BluetoothLeService extends Service {
     }
 
     /**
-     * Request a read on a given {@code BluetoothGattCharacteristic}. The read result is reported
-     * asynchronously through the {@code BluetoothGattCallback#onCharacteristicRead(android.bluetooth.BluetoothGatt,
-     * android.bluetooth.BluetoothGattCharacteristic, int)}
-     * callback.
-     *
-     * @param characteristic The characteristic to read from.
-     */
-    public synchronized void readCharacteristic(final BluetoothGattCharacteristic characteristic) {
-        if (bluetoothAdapter == null || bluetoothGatt == null) {
-            Log.w(TAG, "BluetoothAdapter not initialized");
-            return;
-        }
-        bleTasks.add(new BLETask(new Runnable() {
-            @Override
-            public void run() {
-                bluetoothGatt.readCharacteristic(characteristic);
-            }
-        }));
-    }
-
-    /**
-     * Enables or disables notification on a give characteristic.
-     *
-     * @param characteristic Characteristic to act on.
-     * @param enabled        If true, enable notification.  False otherwise.
-     */
-    public synchronized void setCharacteristicNotification(final BluetoothGattCharacteristic characteristic,
-                                                           final boolean enabled) {
-        if (bluetoothAdapter == null || bluetoothGatt == null) {
-            Log.w(TAG, "BluetoothAdapter not initialized");
-            return;
-        }
-        bleTasks.add(new BLETask(new Runnable() {
-            @Override
-            public void run() {
-                bluetoothGatt.setCharacteristicNotification(characteristic, enabled);
-
-                if (UUID_CYCLE_COUNT.equals(characteristic.getUuid()) || UUID_BATTERY_LEVEL
-                        .equals(characteristic.getUuid())) {
-                    BluetoothGattDescriptor descriptor = characteristic.getDescriptor(
-                            UUID.fromString(Counter.CLIENT_CHARACTERISTIC_CONFIG));
-                    descriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
-                    bluetoothGatt.writeDescriptor(descriptor);
-                }
-            }
-        }));
-    }
-
-    /**
      * Retrieves a list of supported GATT services on the connected device. This should be
      * invoked only after {@code BluetoothGatt#discoverServices()} completes successfully.
      *
@@ -339,7 +284,7 @@ public class BluetoothLeService extends Service {
         final UUID uuid = characteristic.getUuid();
         final Intent intent = new Intent(action);
         intent.putExtra(EXTRA_DATA_UUID, uuid.toString());
-        if (UUID_MODEL_NUMBER.equals(uuid) || UUID_HARDWARE_REVISION.equals(uuid)
+        /*if (UUID_MODEL_NUMBER.equals(uuid) || UUID_HARDWARE_REVISION.equals(uuid)
             || UUID_SOFTWARE_REVISION.equals(uuid)) {
             intent.putExtra(EXTRA_DATA, characteristic.getStringValue(0));
         } else if (UUID_CYCLE_COUNT.equals(uuid)) {
@@ -360,7 +305,7 @@ public class BluetoothLeService extends Service {
                 }
                 intent.putExtra(EXTRA_DATA, new String(data) + "\n" + stringBuilder.toString());
             }
-        }
+        }*/
         sendBroadcast(intent);
     }
 
@@ -392,7 +337,7 @@ public class BluetoothLeService extends Service {
                                 } else {
                                     Log.d(TAG, "Main activity is not visible, showing notification.");
                                     CycleSensorDiscoveredNotification
-                                            .notify(BluetoothLeService.this, counter.address, 1);
+                                            .notify(BluetoothLeService.this, counter.getAddress(), 1);
                                 }
                             } else {
                                 Log.d(TAG, "Ignoring counter - already seen.");
@@ -411,7 +356,10 @@ public class BluetoothLeService extends Service {
                                 return;
                             }
                             cursor.moveToFirst();
-                            EventBus.getDefault().post(new Counter(cursor));
+                            final Counter counter = new Counter(cursor, scanRecord);
+                            // Update counter record and readings record
+                            counter.updateDatabase(getContentResolver());
+                            EventBus.getDefault().post(counter);
                         }
                     } else {
                         Log.v(TAG, "Detected advertisement did not pass check.");

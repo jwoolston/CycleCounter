@@ -32,7 +32,7 @@ public final class CounterDatabaseContract {
         public static final String COLUMN_NAME_LAST_BATTERY      = "last_battery";
         public static final String COLUMN_NAME_LATITUDE          = "latitude";
         public static final String COLUMN_NAME_LONGITUDE         = "longitude";
-        public static final String COLUMN_NAME_MODEL_NUMBER      = "model_number";
+        public static final String COLUMN_NAME_MODEL             = "model";
         public static final String COLUMN_NAME_HARDWARE_REVISION = "hardware_revision";
         public static final String COLUMN_NAME_SOFTWARE_REVISION = "software_revision";
     }
@@ -49,9 +49,11 @@ public final class CounterDatabaseContract {
                                                            + CounterEntry.COLUMN_NAME_LAST_BATTERY + " REAL, "
                                                            + CounterEntry.COLUMN_NAME_LATITUDE + " REAL, "
                                                            + CounterEntry.COLUMN_NAME_LONGITUDE + " REAL, "
-                                                           + CounterEntry.COLUMN_NAME_MODEL_NUMBER + " TEXT, "
-                                                           + CounterEntry.COLUMN_NAME_HARDWARE_REVISION + " TEXT, "
-                                                           + CounterEntry.COLUMN_NAME_SOFTWARE_REVISION + " TEXT)";
+                                                           + CounterEntry.COLUMN_NAME_MODEL + " TEXT NOT NULL, "
+                                                           + CounterEntry.COLUMN_NAME_HARDWARE_REVISION + " TEXT NOT "
+                                                           + "NULL, "
+                                                           + CounterEntry.COLUMN_NAME_SOFTWARE_REVISION + " TEXT NOT "
+                                                           + "NULL)";
 
     public static final String SQL_CREATE_READINGS_TABLE = "CREATE TABLE " + CounterEntry.READINGS_TABLE_NAME + " ("
                                                            + CounterEntry._ID + " INTEGER PRIMARY KEY AUTOINCREMENT, "

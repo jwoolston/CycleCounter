@@ -1,27 +1,15 @@
 package com.realenvprod.cyclecounter.fragment;
 
 
-import static android.content.Context.BIND_AUTO_CREATE;
-
-import android.bluetooth.BluetoothGattCharacteristic;
-import android.bluetooth.BluetoothGattService;
-import android.content.ComponentName;
 import android.content.ContentValues;
 import android.content.DialogInterface;
-import android.content.Intent;
-import android.content.IntentFilter;
-import android.content.ServiceConnection;
 import android.location.Location;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.IBinder;
-import android.support.annotation.IntRange;
 import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AlertDialog.Builder;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.View.OnClickListener;
@@ -29,38 +17,20 @@ import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.TextView;
 import com.realenvprod.cyclecounter.R;
-import com.realenvprod.cyclecounter.bluetooth.GattUpdateReceiver;
 import com.realenvprod.cyclecounter.counter.Counter;
 import com.realenvprod.cyclecounter.counter.db.CounterDatabaseContract;
 import com.realenvprod.cyclecounter.counter.db.CounterDatabaseContract.CounterEntry;
-import com.realenvprod.cyclecounter.service.BluetoothLeService;
 import com.realenvprod.cyclecounter.view.BatteryView;
 import org.greenrobot.eventbus.EventBus;
-
-import java.util.List;
 
 /**
  * A simple {@link Fragment} subclass.
  * Use the {@link AddCounterFragment#newInstance} factory method to
  * create an instance of this fragment.
  */
-public class AddCounterFragment extends Fragment implements GattUpdateReceiver.OnGattUpdate {
+public class AddCounterFragment extends CounterFragment {
 
     public static final String TAG = "AddCounterFragment";
-
-    private static final String ARG_COUNTER = "counter";
-
-    private BluetoothGattCharacteristic cycleCountCharacteristic;
-    private BluetoothGattCharacteristic batteryLevelCharacteristic;
-    private BluetoothLeService          bluetoothLeService;
-    private GattUpdateReceiver          gattUpdateReceiver;
-    private Counter                     counter;
-
-    private long count   = -1;
-    private int  battery = -1;
-    private String modelNumber;
-    private String hardwareRevision;
-    private String softwareRevision;
 
     private EditText aliasView;
     private TextView addressView;
@@ -70,8 +40,6 @@ public class AddCounterFragment extends Fragment implements GattUpdateReceiver.O
     private TextView hardwareView;
     private TextView softwareView;
     private BatteryView batteryIcon;
-
-    private boolean connected = false;
 
     public AddCounterFragment() {
         // Required empty public constructor
@@ -94,15 +62,6 @@ public class AddCounterFragment extends Fragment implements GattUpdateReceiver.O
     }
 
     @Override
-    public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        if (getArguments() != null) {
-            counter = getArguments().getParcelable(ARG_COUNTER);
-        }
-        gattUpdateReceiver = new GattUpdateReceiver(this);
-    }
-
-    @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         // Inflate the layout for this fragment
@@ -121,6 +80,8 @@ public class AddCounterFragment extends Fragment implements GattUpdateReceiver.O
                 saveCounter();
             }
         });
+
+        updateFromCounter(counter);
         return view;
     }
 
@@ -141,86 +102,33 @@ public class AddCounterFragment extends Fragment implements GattUpdateReceiver.O
     public void onResume() {
         super.onResume();
         getActivity().setTitle("Add Cycle Counter");
-        addressView.setText(counter.address);
-        getContext().registerReceiver(gattUpdateReceiver, makeGattUpdateIntentFilter());
-        Intent gattServiceIntent = new Intent(getContext(), BluetoothLeService.class);
-        getActivity().bindService(gattServiceIntent, serviceConnection, BIND_AUTO_CREATE);
+        addressView.setText(counter.getAddress());
     }
 
     @Override
-    public void onPause() {
-        getContext().unregisterReceiver(gattUpdateReceiver);
-        getActivity().unbindService(serviceConnection);
-        super.onPause();
-    }
-
-    @Override
-    public void onUpdateReceived(@NonNull String action, @Nullable String data) {
-        if (BluetoothLeService.ACTION_GATT_CONNECTED.equals(action)) {
-            connected = true;
-            //updateConnectionState(R.string.connected);
-        } else if (BluetoothLeService.ACTION_GATT_DISCONNECTED.equals(action)) {
-            connected = false;
-            //updateConnectionState(R.string.disconnected);
-        } else if (BluetoothLeService.ACTION_GATT_SERVICES_DISCOVERED.equals(action)) {
-            // Show all the supported services and characteristics on the user interface.
-            final List<BluetoothGattService> services = bluetoothLeService.getSupportedGattServices();
-            displayAndObserveGattServices(services);
-        }
-    }
-
-    @Override
-    public void onCycleCountUpdate(@IntRange(from = 0) long cycleCount) {
-        Log.d(TAG, "Cycle count update: " + cycleCount);
-        count = cycleCount;
-        countView.setText(cycleCount >= 0 ? "" + cycleCount : "Error");
-    }
-
-    @Override
-    public void onBatteryUpdate(@IntRange(from = 0, to = 100) int batteryLevel) {
-        Log.d(TAG, "Battery update: " + batteryLevel + "%");
-        battery = batteryLevel;
-        batteryIcon.setBatteryLevel(batteryLevel);
-        batteryView.setText(batteryLevel >= 0 ? "" + batteryLevel + "%" : "Error");
-    }
-
-    @Override
-    public void onModelNumber(@NonNull String model) {
-        Log.d(TAG, "Model number: " + model);
-        modelNumber = model;
-        modelView.setText(model);
-    }
-
-    @Override
-    public void onHardwareRevisionString(@NonNull String revision) {
-        Log.d(TAG, "Hardware version: " + revision);
-        hardwareRevision = revision;
-        hardwareView.setText(revision);
-    }
-
-    @Override
-    public void onSoftwareRevisionString(@NonNull String revision) {
-        Log.d(TAG, "Software version: " + revision);
-        softwareRevision = revision;
-        softwareView.setText(revision);
+    protected void updateFromCounter(@NonNull Counter counter) {
+        countView.setText(Long.toString(counter.getLastCount()));
+        batteryView.setText(Integer.toString((int) Math.round(counter.getLastBattery())));
+        modelView.setText(counter.getModel());
+        hardwareView.setText(counter.getHardwareRevision());
+        softwareView.setText(counter.getSoftwareRevision());
     }
 
     private void saveCounter() {
-        final long time = System.currentTimeMillis();
         final Location location = EventBus.getDefault().getStickyEvent(Location.class);
         final ContentValues values = new ContentValues();
         values.put(CounterEntry.COLUMN_NAME_ALIAS, aliasView.getText().toString());
-        values.put(CounterEntry.COLUMN_NAME_ADDRESS, counter.address);
-        values.put(CounterEntry.COLUMN_NAME_FIRST_CONNECTED, time);
-        values.put(CounterEntry.COLUMN_NAME_INITIAL_COUNT, count);
-        values.put(CounterEntry.COLUMN_NAME_LAST_BATTERY, battery);
-        values.put(CounterEntry.COLUMN_NAME_LAST_CONNECTED, time);
-        values.put(CounterEntry.COLUMN_NAME_LAST_COUNT, count);
+        values.put(CounterEntry.COLUMN_NAME_ADDRESS, counter.getAddress());
+        values.put(CounterEntry.COLUMN_NAME_FIRST_CONNECTED, counter.getFirstConnected());
+        values.put(CounterEntry.COLUMN_NAME_INITIAL_COUNT, counter.getInitialCount());
+        values.put(CounterEntry.COLUMN_NAME_LAST_BATTERY, counter.getLastBattery());
+        values.put(CounterEntry.COLUMN_NAME_LAST_CONNECTED, counter.getLastConnected());
+        values.put(CounterEntry.COLUMN_NAME_LAST_COUNT, counter.getLastCount());
         values.put(CounterEntry.COLUMN_NAME_LATITUDE, location != null ? location.getLatitude() : 0);
         values.put(CounterEntry.COLUMN_NAME_LONGITUDE, location != null ? location.getLongitude() : 0);
-        values.put(CounterEntry.COLUMN_NAME_MODEL_NUMBER, modelNumber);
-        values.put(CounterEntry.COLUMN_NAME_HARDWARE_REVISION, hardwareRevision);
-        values.put(CounterEntry.COLUMN_NAME_SOFTWARE_REVISION, softwareRevision);
+        values.put(CounterEntry.COLUMN_NAME_MODEL, counter.getModel());
+        values.put(CounterEntry.COLUMN_NAME_HARDWARE_REVISION, counter.getHardwareRevision());
+        values.put(CounterEntry.COLUMN_NAME_SOFTWARE_REVISION, counter.getSoftwareRevision());
         final Uri rowId = getContext().getContentResolver().insert(CounterDatabaseContract.COUNTERS_URI, values);
 
         final AlertDialog.Builder builder = new Builder(getActivity());
@@ -245,75 +153,5 @@ public class AddCounterFragment extends Fragment implements GattUpdateReceiver.O
                         }
                     }).show();
         }
-    }
-
-    private void displayAndObserveGattServices(List<BluetoothGattService> gattServices) {
-        if (gattServices == null) {
-            return;
-        }
-        String uuid = null;
-
-        // Loops through available GATT Services.
-        for (BluetoothGattService gattService : gattServices) {
-            List<BluetoothGattCharacteristic> gattCharacteristics = gattService.getCharacteristics();
-            uuid = gattService.getUuid().toString();
-            switch (uuid) {
-                case Counter.DEVICE_INFORMATION_SERVICE:
-                    for (BluetoothGattCharacteristic gattCharacteristic : gattCharacteristics) {
-                        switch (gattCharacteristic.getUuid().toString()) {
-                            case Counter.MODEL_NUMBER_STRING:
-                            case Counter.HARDWARE_REVISION_STRING:
-                            case Counter.SOFTWARE_REVISION_STRING:
-                                Log.v(TAG, "Reading device info characteristic: " + uuid);
-                                bluetoothLeService.readCharacteristic(gattCharacteristic);
-                                break;
-                        }
-                    }
-                case Counter.CYCLE_COUNT_SERVICE:
-                    for (BluetoothGattCharacteristic gattCharacteristic : gattCharacteristics) {
-                        if (Counter.CYCLE_COUNT.equals(gattCharacteristic.getUuid().toString())) {
-                            Log.v(TAG, "Reading cycle count characteristic.");
-                            cycleCountCharacteristic = gattCharacteristic;
-                            bluetoothLeService.readCharacteristic(cycleCountCharacteristic);
-                            bluetoothLeService.setCharacteristicNotification(cycleCountCharacteristic, true);
-                        }
-                    }
-                    break;
-                case Counter.BATTERY_LEVEL_SERVICE:
-                    for (BluetoothGattCharacteristic gattCharacteristic : gattCharacteristics) {
-                        if (Counter.BATTERY_LEVEL.equals(gattCharacteristic.getUuid().toString())) {
-                            Log.v(TAG, "Reading battery level characteristic.");
-                            batteryLevelCharacteristic = gattCharacteristic;
-                            bluetoothLeService.readCharacteristic(batteryLevelCharacteristic);
-                            bluetoothLeService.setCharacteristicNotification(batteryLevelCharacteristic, true);
-                        }
-                    }
-                    break;
-            }
-        }
-    }
-
-    private final ServiceConnection serviceConnection = new ServiceConnection() {
-
-        @Override
-        public void onServiceConnected(ComponentName componentName, IBinder service) {
-            bluetoothLeService = ((BluetoothLeService.LocalBinder) service).getService();
-            // Automatically connects to the device upon successful start-up initialization.
-            bluetoothLeService.connect(counter.address);
-        }
-
-        @Override
-        public void onServiceDisconnected(ComponentName componentName) {
-            bluetoothLeService = null;
-        }
-    };
-
-    private static IntentFilter makeGattUpdateIntentFilter() {
-        final IntentFilter intentFilter = new IntentFilter();
-        intentFilter.addAction(BluetoothLeService.ACTION_GATT_CONNECTED);
-        intentFilter.addAction(BluetoothLeService.ACTION_GATT_DISCONNECTED);
-        intentFilter.addAction(BluetoothLeService.ACTION_GATT_SERVICES_DISCOVERED);
-        intentFilter.addAction(BluetoothLeService.ACTION_DATA_AVAILABLE);
-        return intentFilter;
     }
 }

@@ -28,6 +28,7 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import com.realenvprod.cyclecounter.counter.Counter;
+import com.realenvprod.cyclecounter.dialog.AddCounterDialog;
 import com.realenvprod.cyclecounter.fragment.AddCounterFragment;
 import com.realenvprod.cyclecounter.fragment.CounterDetailFragment;
 import com.realenvprod.cyclecounter.fragment.KnownCounterFragment;
@@ -216,7 +217,7 @@ public class MainActivity extends AppCompatActivity
                 .addToBackStack(SensorMapFragment.TAG).commit();
     }
 
-    private void showAddCounterFragment(@NonNull Counter counter) {
+    public void showAddCounterFragment(@NonNull Counter counter) {
         Log.d(TAG, "Showing add counter fragment.");
         final Fragment fragment = AddCounterFragment.newInstance(counter);
         getSupportFragmentManager().beginTransaction().replace(R.id.fragment_container, fragment)
@@ -230,18 +231,14 @@ public class MainActivity extends AppCompatActivity
 
     @Subscribe(threadMode = ThreadMode.MAIN)
     public void onCounterDiscovered(final Counter counter) {
-        if (!counter.isKnown) {
+        if (!counter.isKnown()) {
             Log.d(TAG, "Received counter discovery: " + counter);
-            AlertDialog.Builder builder = new Builder(this);
-            builder.setTitle("New Cycle Sensor Discovered.");
-            builder.setMessage("A new cycle sensor has been discovered. Would you like to add it to the database?");
-            builder.setCancelable(true).setPositiveButton("YES", new OnClickListener() {
-                @Override
-                public void onClick(DialogInterface dialogInterface, int i) {
-                    showAddCounterFragment(counter);
-                }
-            }).setNegativeButton("NO", null);
-            builder.show();
+            if (getSupportFragmentManager().findFragmentByTag(counter.getAlias()) == null) {
+                AddCounterDialog dialog = AddCounterDialog.newInstance(counter);
+                dialog.show(getSupportFragmentManager(), counter.getAlias());
+            } else {
+                Log.v(TAG, "Skipping add dialog - already showing.");
+            }
         }
     }
 

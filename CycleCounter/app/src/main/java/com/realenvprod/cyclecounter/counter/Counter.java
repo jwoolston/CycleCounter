@@ -1,10 +1,12 @@
 package com.realenvprod.cyclecounter.counter;
 
+import android.content.ContentResolver;
 import android.database.Cursor;
 import android.os.Parcel;
 import android.os.Parcelable;
+import android.support.annotation.FloatRange;
+import android.support.annotation.IntRange;
 import android.support.annotation.NonNull;
-
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
@@ -12,7 +14,6 @@ import com.google.android.gms.maps.model.MarkerOptions;
 import com.realenvprod.cyclecounter.bluetooth.BLEScanResult;
 import com.realenvprod.cyclecounter.counter.db.CounterDatabaseContract.CounterEntry;
 
-import java.util.HashMap;
 import java.util.Objects;
 
 /**
@@ -22,54 +23,36 @@ import java.util.Objects;
  */
 public class Counter implements Parcelable {
 
-    public static final byte[] ADVERTISEMENT = new byte[] {
+    private static final String TAG = "Counter";
+
+    public static final byte[] ADVERTISEMENT = new byte[]{
             0x02, 0x01, 0x06, // AD Flags
-            0x0E, // Length of Local Name
-            0x09, 0x43, 0x79, 0x63, 0x6C, 0x65, 0x20, 0x43, 0x6F, 0x75, 0x6E, 0x74, 0x65, 0x72, // "Cycle Counter"
-            0x07, 0x03, 0x0A, 0x18, 0x0F, 0x18, (byte) 0xC3, 0x35 // List of services
+            0x02, 0x0A, 0x03, // Power Level
+            0x06, 0x16, 0x0A, 0x018, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, // Device Information
+            0x04, 0x16, 0x0F, 0x18, (byte) 0xFF, // Battery Level
+            0x07, 0x16, (byte) 0xC3, 0x35, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF,
+            (byte) 0xFF, (byte) 0xFF // Cycle Count
     };
 
-    private static HashMap<String, String> attributes = new HashMap();
+    public static final int POWER_LEVEL_DATA_INDEX       = 5;
+    public static final int MODEL_NUMBER_DATA_INDEX      = 10;
+    public static final int HARDWARE_REVISION_DATA_INDEX = 11;
+    public static final int SOFTWARE_REVISION_DATA_INDEX = 12;
+    public static final int BATTERY_LEVEL_DATA_INDEX     = 17;
+    public static final int CYCLE_COUNT_DATA_INDEX       = 22;
 
-    public static final String DEVICE_INFORMATION_SERVICE = "0000180a-0000-1000-8000-00805f9b34fb";
-    public static final String BATTERY_LEVEL_SERVICE = "0000180f-0000-1000-8000-00805f9b34fb";
-    public static final String CYCLE_COUNT_SERVICE = "000035c3-0000-1000-8000-00805f9b34fb";
-    public static final String CLIENT_CHARACTERISTIC_CONFIG = "00002902-0000-1000-8000-00805f9b34fb";
-    public static final String MANUFACTURER_NAME_STRING = "00002a29-0000-1000-8000-00805f9b34fb";
-    public static final String MODEL_NUMBER_STRING = "00002a24-0000-1000-8000-00805f9b34fb";
-    public static final String HARDWARE_REVISION_STRING = "00002a27-0000-1000-8000-00805f9b34fb";
-    public static final String SOFTWARE_REVISION_STRING = "00002a28-0000-1000-8000-00805f9b34fb";
-    public static final String BATTERY_LEVEL = "00002a19-0000-1000-8000-00805f9b34fb";
-    public static final String CYCLE_COUNT = "000095dd-0000-1000-8000-00805f9b34fb";
-
-    static {
-        // Services
-        attributes.put(DEVICE_INFORMATION_SERVICE, "Device Information Service");
-        attributes.put(BATTERY_LEVEL_SERVICE, "Battery Level Service");
-        attributes.put(CYCLE_COUNT_SERVICE, "Cycle Count Service");
-        // Characteristics
-        attributes.put(CLIENT_CHARACTERISTIC_CONFIG, "Client Characteristic Config");
-        attributes.put(MANUFACTURER_NAME_STRING, "Manufacturer Name String");
-        attributes.put(MODEL_NUMBER_STRING, "Model Number String");
-        attributes.put(HARDWARE_REVISION_STRING, "Hardware Revision String");
-        attributes.put(SOFTWARE_REVISION_STRING, "Software Revision String");
-        attributes.put(BATTERY_LEVEL, "Battery Level");
-        attributes.put(CYCLE_COUNT, "Cycle Count");
-    }
-
-    public final String alias;
-    public final String address;
-    public final long firstConnected;
-    public final long lastConnected;
-    public final long initialCount;
-    public final long lastCount;
-    public final double lastBattery;
-    public final LatLng location;
-    private String modelNumber;
+    private String alias;
+    private String address;
+    private long   firstConnected;
+    private long   lastConnected;
+    private long   initialCount;
+    private long   lastCount;
+    private double lastBattery;
+    private LatLng location;
+    private String model;
     private String hardwareRevision;
     private String softwareRevision;
-
-    public final boolean isKnown;
+    private boolean isKnown;
 
     public static final Creator<Counter> CREATOR = new Creator<Counter>() {
         @Override
@@ -88,16 +71,58 @@ public class Counter implements Parcelable {
             return false;
         }
         for (int i = 0; i < ADVERTISEMENT.length; ++i) {
-            if (scanRecord[i] != ADVERTISEMENT[i]) {
-                return false;
+            switch (i) {
+                case POWER_LEVEL_DATA_INDEX:
+                case MODEL_NUMBER_DATA_INDEX:
+                case HARDWARE_REVISION_DATA_INDEX:
+                case SOFTWARE_REVISION_DATA_INDEX:
+                case BATTERY_LEVEL_DATA_INDEX:
+                    continue;
+                case CYCLE_COUNT_DATA_INDEX:
+                    return true;
+                default:
+                    if (scanRecord[i] != ADVERTISEMENT[i]) {
+                        return false;
+                    }
             }
         }
         return true;
     }
 
-    public static String lookupAttribute(@NonNull String uuid, @NonNull String defaultName) {
-        String name = attributes.get(uuid);
-        return name == null ? defaultName : name;
+    @IntRange(from = 0)
+    private static long cycleCountFromAdvertisement(@NonNull byte[] scanRecord) {
+        return ((scanRecord[CYCLE_COUNT_DATA_INDEX] << 24)
+                | (scanRecord[CYCLE_COUNT_DATA_INDEX + 1] << 16)
+                | (scanRecord[CYCLE_COUNT_DATA_INDEX + 2] << 8)
+                | scanRecord[CYCLE_COUNT_DATA_INDEX + 3]);
+    }
+
+    @IntRange(from = 0, to = 100)
+    private static int batteryLevelFromAdvertisement(@NonNull byte[] scanRecord) {
+        int battery = scanRecord[BATTERY_LEVEL_DATA_INDEX];
+        if (battery < 0) {
+            // Clamp minimum
+            battery = 0;
+        } else if (battery > 100) {
+            // Clamp maximum
+            battery = 100;
+        }
+        return battery;
+    }
+
+    @NonNull
+    private static String modelNumberFromAdvertisemet(@NonNull byte[] scanRecord) {
+        return ModelNumber.getModelNumberString(scanRecord[MODEL_NUMBER_DATA_INDEX]);
+    }
+
+    @NonNull
+    private static String hardwareRevisionFromAdvertisement(@NonNull byte[] scanRecord) {
+        return HardwareRevision.getHardwareRevisionString(scanRecord[HARDWARE_REVISION_DATA_INDEX]);
+    }
+
+    @NonNull
+    private static String softwareRevisionFromAdvertisement(@NonNull byte[] scanRecord) {
+        return SoftwareRevision.getSoftwareRevisionString(scanRecord[SOFTWARE_REVISION_DATA_INDEX]);
     }
 
     public Counter(@NonNull Cursor cursor) {
@@ -113,22 +138,41 @@ public class Counter implements Parcelable {
         lastBattery = cursor.getDouble(cursor.getColumnIndex(CounterEntry.COLUMN_NAME_LAST_BATTERY));
         location = new LatLng(cursor.getDouble(cursor.getColumnIndex(CounterEntry.COLUMN_NAME_LATITUDE)),
                               cursor.getDouble(cursor.getColumnIndex(CounterEntry.COLUMN_NAME_LONGITUDE)));
-        modelNumber = cursor.getString(cursor.getColumnIndex(CounterEntry.COLUMN_NAME_MODEL_NUMBER));
+        model = cursor.getString(cursor.getColumnIndex(CounterEntry.COLUMN_NAME_MODEL));
         hardwareRevision = cursor.getString(cursor.getColumnIndex(CounterEntry.COLUMN_NAME_HARDWARE_REVISION));
         softwareRevision = cursor.getString(cursor.getColumnIndex(CounterEntry.COLUMN_NAME_SOFTWARE_REVISION));
         isKnown = true;
     }
 
     public Counter(@NonNull BLEScanResult result) {
-        alias = result.device.getName();
+        alias = modelNumberFromAdvertisemet(result.scanRecord);
         address = result.device.getAddress();
-        firstConnected = -1;
-        lastConnected = -1;
-        initialCount = -1;
-        lastCount = -1;
-        lastBattery = -1;
-        location = null;
+        firstConnected = System.currentTimeMillis();
+        lastConnected = firstConnected;
+        initialCount = cycleCountFromAdvertisement(result.scanRecord);
+        lastCount = initialCount;
+        lastBattery = batteryLevelFromAdvertisement(result.scanRecord);
+        location = null; //TODO: Use current location
+        model = modelNumberFromAdvertisemet(result.scanRecord);
+        hardwareRevision = hardwareRevisionFromAdvertisement(result.scanRecord);
+        softwareRevision = softwareRevisionFromAdvertisement(result.scanRecord);
         isKnown = false;
+    }
+
+    public Counter(@NonNull Cursor cursor, @NonNull byte[] scanRecord) {
+        alias = cursor.getString(cursor.getColumnIndex(CounterEntry.COLUMN_NAME_ALIAS));
+        address = cursor.getString(cursor.getColumnIndex(CounterEntry.COLUMN_NAME_ADDRESS));
+        firstConnected = cursor.getLong(cursor.getColumnIndex(CounterEntry.COLUMN_NAME_FIRST_CONNECTED));
+        lastConnected = System.currentTimeMillis();
+        initialCount = cursor.getLong(cursor.getColumnIndex(CounterEntry.COLUMN_NAME_INITIAL_COUNT));
+        lastCount = cycleCountFromAdvertisement(scanRecord);
+        lastBattery = batteryLevelFromAdvertisement(scanRecord);
+        location = new LatLng(cursor.getDouble(cursor.getColumnIndex(CounterEntry.COLUMN_NAME_LATITUDE)),
+                              cursor.getDouble(cursor.getColumnIndex(CounterEntry.COLUMN_NAME_LONGITUDE)));
+        model = cursor.getString(cursor.getColumnIndex(CounterEntry.COLUMN_NAME_MODEL));
+        hardwareRevision = cursor.getString(cursor.getColumnIndex(CounterEntry.COLUMN_NAME_HARDWARE_REVISION));
+        softwareRevision = cursor.getString(cursor.getColumnIndex(CounterEntry.COLUMN_NAME_SOFTWARE_REVISION));
+        isKnown = true;
     }
 
     protected Counter(Parcel in) {
@@ -140,34 +184,68 @@ public class Counter implements Parcelable {
         lastCount = in.readLong();
         lastBattery = in.readDouble();
         location = in.readParcelable(LatLng.class.getClassLoader());
-        modelNumber = in.readString();
+        model = in.readString();
         hardwareRevision = in.readString();
         softwareRevision = in.readString();
         isKnown = in.readByte() != 0;
     }
 
-    public String getModelNumber() {
-        return modelNumber;
+    @NonNull
+    public String getAlias() {
+        return alias;
     }
 
-    public void setModelNumber(@NonNull String modelNumber) {
-        this.modelNumber = modelNumber;
+    @NonNull
+    public String getAddress() {
+        return address;
     }
 
+    @IntRange(from = 0)
+    public long getFirstConnected() {
+        return firstConnected;
+    }
+
+    @IntRange(from = 0)
+    public long getLastConnected() {
+        return lastConnected;
+    }
+
+    @IntRange(from = 0)
+    public long getInitialCount() {
+        return initialCount;
+    }
+
+    @IntRange(from = 0)
+    public long getLastCount() {
+        return lastCount;
+    }
+
+    @FloatRange(from = 0, to = 100)
+    public double getLastBattery() {
+        return lastBattery;
+    }
+
+    public LatLng getLocation() {
+        return location;
+    }
+
+    @NonNull
+    public String getModel() {
+        return model;
+    }
+
+    @NonNull
     public String getHardwareRevision() {
         return hardwareRevision;
     }
 
-    public void setHardwareRevision(@NonNull String hardwareRevision) {
-        this.hardwareRevision = hardwareRevision;
-    }
-
+    @NonNull
     public String getSoftwareRevision() {
         return softwareRevision;
     }
 
-    public void setSoftwareRevision(@NonNull String softwareRevision) {
-        this.softwareRevision = softwareRevision;
+    public boolean isKnown() {
+        return isKnown;
     }
 
     public void updateMarker(@NonNull Marker marker) {
@@ -197,12 +275,18 @@ public class Counter implements Parcelable {
             return false;
         }
         final Counter counter = (Counter) o;
-        return Objects.equals(address, counter.address);
+        return lastConnected == counter.lastConnected &&
+               lastCount == counter.lastCount &&
+               Double.compare(counter.lastBattery, lastBattery) == 0 &&
+               Objects.equals(address, counter.address) &&
+               Objects.equals(model, counter.model) &&
+               Objects.equals(hardwareRevision, counter.hardwareRevision) &&
+               Objects.equals(softwareRevision, counter.softwareRevision);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(address);
+        return Objects.hash(address, lastConnected, lastCount, lastBattery, model, hardwareRevision, softwareRevision);
     }
 
     @Override
@@ -216,6 +300,10 @@ public class Counter implements Parcelable {
         sb.append(", lastCount=").append(lastCount);
         sb.append(", lastBattery=").append(lastBattery);
         sb.append(", location=").append(location);
+        sb.append(", model='").append(model).append('\'');
+        sb.append(", hardwareRevision='").append(hardwareRevision).append('\'');
+        sb.append(", softwareRevision='").append(softwareRevision).append('\'');
+        sb.append(", isKnown=").append(isKnown);
         sb.append('}');
         return sb.toString();
     }
@@ -235,9 +323,63 @@ public class Counter implements Parcelable {
         parcel.writeLong(lastCount);
         parcel.writeDouble(lastBattery);
         parcel.writeParcelable(location, i);
-        parcel.writeString(modelNumber);
+        parcel.writeString(model);
         parcel.writeString(hardwareRevision);
         parcel.writeString(softwareRevision);
         parcel.writeByte((byte) (isKnown ? 1 : 0));
+    }
+
+    public void updateDatabase(@NonNull ContentResolver contentResolver) {
+    }
+
+    private static final class ModelNumber {
+
+        private static final byte BLE_CYCLE_COUNTER = 0x01;
+
+        @NonNull
+        static String getModelNumberString(byte modelByte) {
+            switch (modelByte) {
+                case BLE_CYCLE_COUNTER:
+                    return "BLE Magnetic Cycle Counter";
+                default:
+                    return "Unknown Device";
+            }
+        }
+    }
+
+    private static final class HardwareRevision {
+
+        private static final byte CY8CKIT_042_BLE_A_PROTOTYPE = 0x01;
+        private static final byte REV_A                       = 0x02;
+        private static final byte REV_B                       = 0x03;
+
+        @NonNull
+        static String getHardwareRevisionString(byte hardwareByte) {
+            switch (hardwareByte) {
+                case CY8CKIT_042_BLE_A_PROTOTYPE:
+                    return "BLE Pioneer Prototype";
+                case REV_A:
+                    return "A";
+                case REV_B:
+                    return "B";
+                default:
+                    return "Unknown";
+            }
+        }
+    }
+
+    private static final class SoftwareRevision {
+
+        private static final byte ALPHA = 0x01;
+
+        @NonNull
+        static String getSoftwareRevisionString(byte softwareByte) {
+            switch (softwareByte) {
+                case ALPHA:
+                    return "Alpha";
+                default:
+                    return "Unknown";
+            }
+        }
     }
 }
