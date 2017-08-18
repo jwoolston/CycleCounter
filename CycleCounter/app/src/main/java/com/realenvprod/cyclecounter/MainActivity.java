@@ -1,8 +1,6 @@
 package com.realenvprod.cyclecounter;
 
-import static android.Manifest.permission.ACCESS_FINE_LOCATION;
-import static android.content.pm.PackageManager.PERMISSION_GRANTED;
-
+import android.app.Dialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothManager;
 import android.content.Context;
@@ -27,17 +25,23 @@ import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+
 import com.realenvprod.cyclecounter.counter.Counter;
-import com.realenvprod.cyclecounter.dialog.AddCounterDialog;
 import com.realenvprod.cyclecounter.fragment.AddCounterFragment;
 import com.realenvprod.cyclecounter.fragment.CounterDetailFragment;
 import com.realenvprod.cyclecounter.fragment.KnownCounterFragment;
 import com.realenvprod.cyclecounter.fragment.KnownCounterFragment.OnCounterListItemInteractionListener;
 import com.realenvprod.cyclecounter.fragment.SensorMapFragment;
 import com.realenvprod.cyclecounter.fragment.UnknownCounterFragment;
+
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
+
+import java.util.HashMap;
+
+import static android.Manifest.permission.ACCESS_FINE_LOCATION;
+import static android.content.pm.PackageManager.PERMISSION_GRANTED;
 
 public class MainActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener,
@@ -47,6 +51,8 @@ public class MainActivity extends AppCompatActivity
 
     private static final int REQUEST_ENABLE_BT  = 1;
     private static final int PERMISSION_REQUEST = 2;
+
+    private HashMap<String, Dialog> dialogMap = new HashMap<>();
 
     private LocationManager  locationManager;
     private BluetoothAdapter mBluetoothAdapter;
@@ -233,9 +239,22 @@ public class MainActivity extends AppCompatActivity
     public void onCounterDiscovered(final Counter counter) {
         if (!counter.isKnown()) {
             Log.d(TAG, "Received counter discovery: " + counter);
-            if (getSupportFragmentManager().findFragmentByTag(counter.getAlias()) == null) {
-                AddCounterDialog dialog = AddCounterDialog.newInstance(counter);
-                dialog.show(getSupportFragmentManager(), counter.getAlias());
+            if (!dialogMap.containsKey(counter.getAddress())) {
+                final AlertDialog dialog = new AlertDialog.Builder(this)
+                    .setTitle("New Cycle Sensor Discovered.")
+                    .setIcon(R.drawable.ic_add_circle_outline_black_24dp)
+                    .setMessage("A new cycle sensor (" + counter.getAddress() + ") has been discovered. Would you like to "
+                        + "add it to the database?")
+                    .setCancelable(true)
+                    .setPositiveButton("YES", new OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialogInterface, int i) {
+                            showAddCounterFragment(counter);
+                        }
+                    })
+                    .setNegativeButton("NO", null)
+                    .show();
+                dialogMap.put(counter.getAddress(), dialog);
             } else {
                 Log.v(TAG, "Skipping add dialog - already showing.");
             }
