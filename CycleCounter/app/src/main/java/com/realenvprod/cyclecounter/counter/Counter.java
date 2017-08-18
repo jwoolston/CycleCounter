@@ -17,6 +17,9 @@ import com.realenvprod.cyclecounter.bluetooth.BLEScanResult;
 import com.realenvprod.cyclecounter.counter.db.CounterDatabaseContract;
 import com.realenvprod.cyclecounter.counter.db.CounterDatabaseContract.CounterEntry;
 
+import java.text.DateFormat;
+import java.util.Date;
+import java.util.Locale;
 import java.util.Objects;
 
 /**
@@ -358,6 +361,12 @@ public class Counter implements Parcelable {
         readingValues.put(CounterEntry.COLUMN_NAME_LATITUDE, location != null ? location.latitude : 0);
         readingValues.put(CounterEntry.COLUMN_NAME_LONGITUDE, location != null ? location.longitude : 0);
         contentResolver.insert(CounterDatabaseContract.READINGS_URI, readingValues);
+    }
+
+    @NonNull
+    public String getFormattedLastSeen(@NonNull Locale locale) {
+        return DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.MEDIUM, locale)
+                .format(new Date(getLastConnected()));
     }
 
     private static final class ModelNumber {

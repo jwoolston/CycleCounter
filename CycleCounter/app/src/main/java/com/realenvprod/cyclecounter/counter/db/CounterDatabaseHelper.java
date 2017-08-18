@@ -3,6 +3,7 @@ package com.realenvprod.cyclecounter.counter.db;
 import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
+import android.os.Environment;
 import android.support.annotation.NonNull;
 
 /**
@@ -13,7 +14,8 @@ public class CounterDatabaseHelper extends SQLiteOpenHelper {
 
     // If you change the database schema, you must increment the database version.
     public static final int DATABASE_VERSION = 1;
-    public static final String DATABASE_NAME = "CounterDatabase.db";
+    public static final String DATABASE_NAME = Environment.getExternalStorageDirectory().getAbsolutePath() +
+        "/CounterDatabase.db";
 
     public CounterDatabaseHelper(@NonNull Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);

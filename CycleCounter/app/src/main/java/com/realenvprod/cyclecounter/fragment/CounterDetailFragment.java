@@ -13,6 +13,8 @@ import android.widget.TextView;
 import com.realenvprod.cyclecounter.R;
 import com.realenvprod.cyclecounter.counter.Counter;
 
+import java.util.Locale;
+
 /**
  * A simple {@link Fragment} subclass.
  * Use the {@link CounterDetailFragment#newInstance} factory method to
@@ -24,8 +26,9 @@ public class CounterDetailFragment extends CounterFragment {
 
     private static final String ARG_COUNTER = "counter";
 
-    private TextView aliasView;
+    private EditText aliasView;
     private TextView addressView;
+    private TextView lastSeenView;
     private TextView countView;
     private TextView batteryView;
     private TextView modelView;
@@ -59,6 +62,7 @@ public class CounterDetailFragment extends CounterFragment {
         final View view = inflater.inflate(R.layout.fragment_counter_details, container, false);
         aliasView = (EditText) view.findViewById(R.id.alias_input);
         addressView = (TextView) view.findViewById(R.id.address_entry);
+        lastSeenView = (TextView) view.findViewById(R.id.last_seen_entry);
         countView = (TextView) view.findViewById(R.id.current_count_entry);
         batteryView = (TextView) view.findViewById(R.id.current_battery_entry);
         modelView = (TextView) view.findViewById(R.id.model_number_entry);
@@ -79,6 +83,7 @@ public class CounterDetailFragment extends CounterFragment {
     public void onDestroyView() {
         aliasView = null;
         addressView = null;
+        lastSeenView = null;
         countView = null;
         batteryView = null;
         modelView = null;
@@ -91,12 +96,14 @@ public class CounterDetailFragment extends CounterFragment {
     public void onResume() {
         super.onResume();
         getActivity().setTitle("Counter Details");
-        aliasView.setText(counter.getAlias());
-        addressView.setText(counter.getAddress());
+        updateFromCounter(counter);
     }
 
     @Override
     protected void updateFromCounter(@NonNull Counter counter) {
+        aliasView.setText(counter.getAlias());
+        addressView.setText(counter.getAddress());
+        lastSeenView.setText(counter.getFormattedLastSeen(Locale.US));
         countView.setText(Long.toString(counter.getLastCount()));
         batteryView.setText(Integer.toString((int) Math.round(counter.getLastBattery())));
         modelView.setText(counter.getModel());

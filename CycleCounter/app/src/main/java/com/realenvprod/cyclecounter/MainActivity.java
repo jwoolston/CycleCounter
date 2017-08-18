@@ -1,6 +1,7 @@
 package com.realenvprod.cyclecounter;
 
 import static android.Manifest.permission.ACCESS_FINE_LOCATION;
+import static android.Manifest.permission.WRITE_EXTERNAL_STORAGE;
 import static android.content.pm.PackageManager.PERMISSION_GRANTED;
 
 import android.app.Dialog;
@@ -81,7 +82,8 @@ public class MainActivity extends AppCompatActivity
 
         locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         if (ActivityCompat.checkSelfPermission(this, ACCESS_FINE_LOCATION) != PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this, new String[]{ ACCESS_FINE_LOCATION }, PERMISSION_REQUEST);
+            ActivityCompat.requestPermissions(this, new String[]{ ACCESS_FINE_LOCATION, WRITE_EXTERNAL_STORAGE },
+                                              PERMISSION_REQUEST);
         } else {
             locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 5000, 10, locationListener);
         }
