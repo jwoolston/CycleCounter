@@ -347,6 +347,7 @@ public class BluetoothLeService extends Service {
                             }
                         } else {
                             // We already know about this counter
+                            Log.d(TAG, "Discovered known counter.");
                             cursor.close();
                             cursor = getContentResolver().query(CounterDatabaseContract.COUNTERS_URI, null,
                                                                 CounterDatabaseContract.SELECTION_ADDRESS_ONLY,

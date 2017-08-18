@@ -8,6 +8,7 @@ import android.os.Parcelable;
 import android.support.annotation.FloatRange;
 import android.support.annotation.IntRange;
 import android.support.annotation.NonNull;
+import android.util.Log;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
@@ -332,22 +333,31 @@ public class Counter implements Parcelable {
     }
 
     public void updateDatabase(@NonNull ContentResolver contentResolver) {
-        final ContentValues values = new ContentValues();
-        values.put(CounterEntry.COLUMN_NAME_ALIAS, alias);
-        values.put(CounterEntry.COLUMN_NAME_ADDRESS, address);
-        values.put(CounterEntry.COLUMN_NAME_FIRST_CONNECTED, firstConnected);
-        values.put(CounterEntry.COLUMN_NAME_INITIAL_COUNT, initialCount);
-        values.put(CounterEntry.COLUMN_NAME_LAST_BATTERY, lastBattery);
-        values.put(CounterEntry.COLUMN_NAME_LAST_CONNECTED, lastConnected);
-        values.put(CounterEntry.COLUMN_NAME_LAST_COUNT, lastCount);
-        values.put(CounterEntry.COLUMN_NAME_LATITUDE, location != null ? location.latitude : 0);
-        values.put(CounterEntry.COLUMN_NAME_LONGITUDE, location != null ? location.longitude : 0);
-        values.put(CounterEntry.COLUMN_NAME_MODEL, model);
-        values.put(CounterEntry.COLUMN_NAME_HARDWARE_REVISION, hardwareRevision);
-        values.put(CounterEntry.COLUMN_NAME_SOFTWARE_REVISION, softwareRevision);
-        contentResolver.update(CounterDatabaseContract.COUNTERS_URI, values,
+        Log.d(TAG, "Updating database for reading of known counter: " + this);
+        final ContentValues counterValues = new ContentValues();
+        counterValues.put(CounterEntry.COLUMN_NAME_ALIAS, alias);
+        counterValues.put(CounterEntry.COLUMN_NAME_ADDRESS, address);
+        counterValues.put(CounterEntry.COLUMN_NAME_FIRST_CONNECTED, firstConnected);
+        counterValues.put(CounterEntry.COLUMN_NAME_INITIAL_COUNT, initialCount);
+        counterValues.put(CounterEntry.COLUMN_NAME_LAST_BATTERY, lastBattery);
+        counterValues.put(CounterEntry.COLUMN_NAME_LAST_CONNECTED, lastConnected);
+        counterValues.put(CounterEntry.COLUMN_NAME_LAST_COUNT, lastCount);
+        counterValues.put(CounterEntry.COLUMN_NAME_LATITUDE, location != null ? location.latitude : 0);
+        counterValues.put(CounterEntry.COLUMN_NAME_LONGITUDE, location != null ? location.longitude : 0);
+        counterValues.put(CounterEntry.COLUMN_NAME_MODEL, model);
+        counterValues.put(CounterEntry.COLUMN_NAME_HARDWARE_REVISION, hardwareRevision);
+        counterValues.put(CounterEntry.COLUMN_NAME_SOFTWARE_REVISION, softwareRevision);
+        contentResolver.update(CounterDatabaseContract.COUNTERS_URI, counterValues,
                                CounterDatabaseContract.SELECTION_ADDRESS_ONLY, new String[] { address });
-        contentResolver.insert(CounterDatabaseContract.READINGS_URI, values);
+
+        final ContentValues readingValues = new ContentValues();
+        readingValues.put(CounterEntry.COLUMN_NAME_ADDRESS, address);
+        readingValues.put(CounterEntry.COLUMN_NAME_LAST_BATTERY, lastBattery);
+        readingValues.put(CounterEntry.COLUMN_NAME_READING_TIME, lastConnected);
+        readingValues.put(CounterEntry.COLUMN_NAME_LAST_COUNT, lastCount);
+        readingValues.put(CounterEntry.COLUMN_NAME_LATITUDE, location != null ? location.latitude : 0);
+        readingValues.put(CounterEntry.COLUMN_NAME_LONGITUDE, location != null ? location.longitude : 0);
+        contentResolver.insert(CounterDatabaseContract.READINGS_URI, readingValues);
     }
 
     private static final class ModelNumber {

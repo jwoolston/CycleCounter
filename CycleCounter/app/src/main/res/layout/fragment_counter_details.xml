@@ -35,29 +35,11 @@
         android:layout_centerHorizontal="true">
 
         <TextView
-            android:id="@+id/status_label"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_alignParentStart="true"
-            android:layout_alignParentTop="true"
-            android:text="Status:"
-            android:textAppearance="@style/TextAppearance.AppCompat.Large"/>
-
-        <TextView
-            android:id="@+id/status_entry"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_alignBaseline="@id/status_label"
-            android:layout_alignParentEnd="true"
-            android:text="@string/status_connecting"
-            android:textAppearance="@style/TextAppearance.AppCompat.Large"/>
-
-        <TextView
             android:id="@+id/address_label"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_alignParentStart="true"
-            android:layout_below="@id/status_label"
+            android:layout_alignParentTop="true"
             android:text="Address:"
             android:textAppearance="@style/TextAppearance.AppCompat.Large"/>
 

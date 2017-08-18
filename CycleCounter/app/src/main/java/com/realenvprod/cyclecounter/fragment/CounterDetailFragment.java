@@ -24,18 +24,13 @@ public class CounterDetailFragment extends CounterFragment {
 
     private static final String ARG_COUNTER = "counter";
 
-    private Counter                     counter;
-
     private TextView aliasView;
-    private TextView statusView;
     private TextView addressView;
     private TextView countView;
     private TextView batteryView;
     private TextView modelView;
     private TextView hardwareView;
     private TextView softwareView;
-
-    private boolean connected = false;
 
     public CounterDetailFragment() {
         // Required empty public constructor
@@ -63,7 +58,6 @@ public class CounterDetailFragment extends CounterFragment {
         // Inflate the layout for this fragment
         final View view = inflater.inflate(R.layout.fragment_counter_details, container, false);
         aliasView = (EditText) view.findViewById(R.id.alias_input);
-        statusView = (TextView) view.findViewById(R.id.status_entry);
         addressView = (TextView) view.findViewById(R.id.address_entry);
         countView = (TextView) view.findViewById(R.id.current_count_entry);
         batteryView = (TextView) view.findViewById(R.id.current_battery_entry);
@@ -84,7 +78,6 @@ public class CounterDetailFragment extends CounterFragment {
     @Override
     public void onDestroyView() {
         aliasView = null;
-        statusView = null;
         addressView = null;
         countView = null;
         batteryView = null;

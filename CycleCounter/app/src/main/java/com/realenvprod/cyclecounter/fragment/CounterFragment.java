@@ -3,12 +3,18 @@ package com.realenvprod.cyclecounter.fragment;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v4.app.Fragment;
+import android.util.Log;
 import com.realenvprod.cyclecounter.counter.Counter;
+import org.greenrobot.eventbus.EventBus;
+import org.greenrobot.eventbus.Subscribe;
+import org.greenrobot.eventbus.ThreadMode;
 
 /**
  * @author Jared Woolston (Jared.Woolston@gmail.com)
  */
 public abstract class CounterFragment extends Fragment {
+
+    private static final String TAG = "CounterFragment";
 
     protected static final String ARG_COUNTER = "counter";
 
@@ -23,6 +29,20 @@ public abstract class CounterFragment extends Fragment {
     }
 
     @Override
+    public void onResume() {
+        // Register for scan results
+        EventBus.getDefault().register(this);
+
+        super.onResume();
+    }
+
+    @Override
+    public void onPause() {
+        EventBus.getDefault().unregister(this);
+        super.onPause();
+    }
+
+    @Override
     public void setArguments(Bundle args) {
         super.setArguments(args);
         if (counter != null) {
@@ -31,6 +51,15 @@ public abstract class CounterFragment extends Fragment {
                 counter = newCounter;
                 updateFromCounter(counter);
             }
+        }
+    }
+
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    public void onCounterDiscovered(final Counter counter) {
+        if (this.counter.getAddress().equals(counter.getAddress())) {
+            Log.d(TAG, "Updating counter for this fragment.");
+            this.counter = counter;
+            updateFromCounter(counter);
         }
     }
 

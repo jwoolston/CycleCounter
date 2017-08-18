@@ -1,5 +1,8 @@
 package com.realenvprod.cyclecounter;
 
+import static android.Manifest.permission.ACCESS_FINE_LOCATION;
+import static android.content.pm.PackageManager.PERMISSION_GRANTED;
+
 import android.app.Dialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothManager;
@@ -25,7 +28,6 @@ import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
-
 import com.realenvprod.cyclecounter.counter.Counter;
 import com.realenvprod.cyclecounter.fragment.AddCounterFragment;
 import com.realenvprod.cyclecounter.fragment.CounterDetailFragment;
@@ -33,15 +35,11 @@ import com.realenvprod.cyclecounter.fragment.KnownCounterFragment;
 import com.realenvprod.cyclecounter.fragment.KnownCounterFragment.OnCounterListItemInteractionListener;
 import com.realenvprod.cyclecounter.fragment.SensorMapFragment;
 import com.realenvprod.cyclecounter.fragment.UnknownCounterFragment;
-
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
 
 import java.util.HashMap;
-
-import static android.Manifest.permission.ACCESS_FINE_LOCATION;
-import static android.content.pm.PackageManager.PERMISSION_GRANTED;
 
 public class MainActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener,
