@@ -1,6 +1,7 @@
 package com.realenvprod.cyclecounter.counter.db;
 
 import static com.realenvprod.cyclecounter.counter.db.CounterDatabaseContract.CounterEntry.COLUMN_NAME_ADDRESS;
+import static com.realenvprod.cyclecounter.counter.db.CounterDatabaseContract.CounterEntry.COLUMN_NAME_READING_TIME;
 import static com.realenvprod.cyclecounter.counter.db.CounterDatabaseContract.CounterEntry.COUNTERS_TABLE_NAME;
 
 import android.net.Uri;
@@ -70,7 +71,11 @@ public final class CounterDatabaseContract {
     public static final String[] PROJECTION_ADDRESS_ONLY = new String[]{ COLUMN_NAME_ADDRESS };
 
     public static final String[] PROJECTION_READINGS_WITH_TIME = new String[]{ CounterEntry.COLUMN_NAME_READING_TIME,
-                                                                               CounterEntry.COLUMN_NAME_LAST_COUNT };
+                                                                               CounterEntry.COLUMN_NAME_LAST_COUNT,
+                                                                               CounterEntry.COLUMN_NAME_LAST_BATTERY };
 
     public static final String SELECTION_ADDRESS_ONLY = COLUMN_NAME_ADDRESS + " = ?";
+
+    public static final String SELECTION_COUNTER_DETAILS_READING = SELECTION_ADDRESS_ONLY + " AND " +
+                                                                   COLUMN_NAME_READING_TIME + " > ?";
 }

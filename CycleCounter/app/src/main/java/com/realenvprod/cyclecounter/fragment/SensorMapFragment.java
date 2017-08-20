@@ -115,7 +115,7 @@ public class SensorMapFragment extends SupportMapFragment implements OnMapReadyC
             }
         }
         for (Counter counter : sensorMarkers.keySet()) {
-            data.add(new WeightedLatLng(counter.getLocation(), counter.getLastConnected() / ((double) maxCount)));
+            data.add(new WeightedLatLng(counter.getLocation(), counter.getLastSeen() / ((double) maxCount)));
         }
         return data;
     }

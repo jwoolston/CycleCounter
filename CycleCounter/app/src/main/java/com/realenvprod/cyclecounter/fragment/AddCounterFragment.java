@@ -121,10 +121,10 @@ public class AddCounterFragment extends CounterFragment {
         final ContentValues values = new ContentValues();
         values.put(CounterEntry.COLUMN_NAME_ALIAS, aliasView.getText().toString());
         values.put(CounterEntry.COLUMN_NAME_ADDRESS, counter.getAddress());
-        values.put(CounterEntry.COLUMN_NAME_FIRST_CONNECTED, counter.getFirstConnected());
+        values.put(CounterEntry.COLUMN_NAME_FIRST_CONNECTED, counter.getFirstSeen());
         values.put(CounterEntry.COLUMN_NAME_INITIAL_COUNT, counter.getInitialCount());
         values.put(CounterEntry.COLUMN_NAME_LAST_BATTERY, counter.getLastBattery());
-        values.put(CounterEntry.COLUMN_NAME_LAST_CONNECTED, counter.getLastConnected());
+        values.put(CounterEntry.COLUMN_NAME_LAST_CONNECTED, counter.getLastSeen());
         values.put(CounterEntry.COLUMN_NAME_LAST_COUNT, counter.getLastCount());
         values.put(CounterEntry.COLUMN_NAME_LATITUDE, location != null ? location.getLatitude() : 0);
         values.put(CounterEntry.COLUMN_NAME_LONGITUDE, location != null ? location.getLongitude() : 0);

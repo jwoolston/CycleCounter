@@ -47,17 +47,17 @@ public class Counter implements Parcelable {
     public static final int BATTERY_LEVEL_DATA_INDEX     = 17;
     public static final int CYCLE_COUNT_DATA_INDEX       = 22;
 
-    private String alias;
-    private String address;
-    private long   firstConnected;
-    private long   lastConnected;
-    private long   initialCount;
-    private long   lastCount;
-    private double lastBattery;
-    private LatLng location;
-    private String model;
-    private String hardwareRevision;
-    private String softwareRevision;
+    private String  alias;
+    private String  address;
+    private long    firstSeen;
+    private long    lastSeen;
+    private long    initialCount;
+    private long    lastCount;
+    private double  lastBattery;
+    private LatLng  location;
+    private String  model;
+    private String  hardwareRevision;
+    private String  softwareRevision;
     private boolean isKnown;
 
     public static final Creator<Counter> CREATOR = new Creator<Counter>() {
@@ -97,10 +97,10 @@ public class Counter implements Parcelable {
 
     @IntRange(from = 0)
     private static long cycleCountFromAdvertisement(@NonNull byte[] scanRecord) {
-        return ((scanRecord[CYCLE_COUNT_DATA_INDEX] << 24)
-                | (scanRecord[CYCLE_COUNT_DATA_INDEX + 1] << 16)
-                | (scanRecord[CYCLE_COUNT_DATA_INDEX + 2] << 8)
-                | scanRecord[CYCLE_COUNT_DATA_INDEX + 3]);
+        return (((0xFF & scanRecord[CYCLE_COUNT_DATA_INDEX]) << 24)
+                | ((0xFF & scanRecord[CYCLE_COUNT_DATA_INDEX + 1]) << 16)
+                | ((0xFF & scanRecord[CYCLE_COUNT_DATA_INDEX + 2]) << 8)
+                | (0xFF & scanRecord[CYCLE_COUNT_DATA_INDEX + 3]));
     }
 
     @IntRange(from = 0, to = 100)
@@ -137,8 +137,8 @@ public class Counter implements Parcelable {
         }
         alias = cursor.getString(cursor.getColumnIndex(CounterEntry.COLUMN_NAME_ALIAS));
         address = cursor.getString(cursor.getColumnIndex(CounterEntry.COLUMN_NAME_ADDRESS));
-        firstConnected = cursor.getLong(cursor.getColumnIndex(CounterEntry.COLUMN_NAME_FIRST_CONNECTED));
-        lastConnected = cursor.getLong(cursor.getColumnIndex(CounterEntry.COLUMN_NAME_LAST_CONNECTED));
+        firstSeen = cursor.getLong(cursor.getColumnIndex(CounterEntry.COLUMN_NAME_FIRST_CONNECTED));
+        lastSeen = cursor.getLong(cursor.getColumnIndex(CounterEntry.COLUMN_NAME_LAST_CONNECTED));
         initialCount = cursor.getLong(cursor.getColumnIndex(CounterEntry.COLUMN_NAME_INITIAL_COUNT));
         lastCount = cursor.getLong(cursor.getColumnIndex(CounterEntry.COLUMN_NAME_LAST_COUNT));
         lastBattery = cursor.getDouble(cursor.getColumnIndex(CounterEntry.COLUMN_NAME_LAST_BATTERY));
@@ -153,8 +153,8 @@ public class Counter implements Parcelable {
     public Counter(@NonNull BLEScanResult result) {
         alias = modelNumberFromAdvertisemet(result.scanRecord);
         address = result.device.getAddress();
-        firstConnected = System.currentTimeMillis();
-        lastConnected = firstConnected;
+        firstSeen = System.currentTimeMillis();
+        lastSeen = firstSeen;
         initialCount = cycleCountFromAdvertisement(result.scanRecord);
         lastCount = initialCount;
         lastBattery = batteryLevelFromAdvertisement(result.scanRecord);
@@ -168,8 +168,8 @@ public class Counter implements Parcelable {
     public Counter(@NonNull Cursor cursor, @NonNull byte[] scanRecord) {
         alias = cursor.getString(cursor.getColumnIndex(CounterEntry.COLUMN_NAME_ALIAS));
         address = cursor.getString(cursor.getColumnIndex(CounterEntry.COLUMN_NAME_ADDRESS));
-        firstConnected = cursor.getLong(cursor.getColumnIndex(CounterEntry.COLUMN_NAME_FIRST_CONNECTED));
-        lastConnected = System.currentTimeMillis();
+        firstSeen = cursor.getLong(cursor.getColumnIndex(CounterEntry.COLUMN_NAME_FIRST_CONNECTED));
+        lastSeen = System.currentTimeMillis();
         initialCount = cursor.getLong(cursor.getColumnIndex(CounterEntry.COLUMN_NAME_INITIAL_COUNT));
         lastCount = cycleCountFromAdvertisement(scanRecord);
         lastBattery = batteryLevelFromAdvertisement(scanRecord);
@@ -184,8 +184,8 @@ public class Counter implements Parcelable {
     protected Counter(Parcel in) {
         alias = in.readString();
         address = in.readString();
-        firstConnected = in.readLong();
-        lastConnected = in.readLong();
+        firstSeen = in.readLong();
+        lastSeen = in.readLong();
         initialCount = in.readLong();
         lastCount = in.readLong();
         lastBattery = in.readDouble();
@@ -207,13 +207,13 @@ public class Counter implements Parcelable {
     }
 
     @IntRange(from = 0)
-    public long getFirstConnected() {
-        return firstConnected;
+    public long getFirstSeen() {
+        return firstSeen;
     }
 
     @IntRange(from = 0)
-    public long getLastConnected() {
-        return lastConnected;
+    public long getLastSeen() {
+        return lastSeen;
     }
 
     @IntRange(from = 0)
@@ -281,7 +281,7 @@ public class Counter implements Parcelable {
             return false;
         }
         final Counter counter = (Counter) o;
-        return lastConnected == counter.lastConnected &&
+        return lastSeen == counter.lastSeen &&
                lastCount == counter.lastCount &&
                Double.compare(counter.lastBattery, lastBattery) == 0 &&
                Objects.equals(address, counter.address) &&
@@ -292,7 +292,7 @@ public class Counter implements Parcelable {
 
     @Override
     public int hashCode() {
-        return Objects.hash(address, lastConnected, lastCount, lastBattery, model, hardwareRevision, softwareRevision);
+        return Objects.hash(address, lastSeen, lastCount, lastBattery, model, hardwareRevision, softwareRevision);
     }
 
     @Override
@@ -300,8 +300,8 @@ public class Counter implements Parcelable {
         final StringBuffer sb = new StringBuffer("Counter{");
         sb.append("alias='").append(alias).append('\'');
         sb.append(", address='").append(address).append('\'');
-        sb.append(", firstConnected=").append(firstConnected);
-        sb.append(", lastConnected=").append(lastConnected);
+        sb.append(", firstSeen=").append(firstSeen);
+        sb.append(", lastSeen=").append(lastSeen);
         sb.append(", initialCount=").append(initialCount);
         sb.append(", lastCount=").append(lastCount);
         sb.append(", lastBattery=").append(lastBattery);
@@ -323,8 +323,8 @@ public class Counter implements Parcelable {
     public void writeToParcel(Parcel parcel, int i) {
         parcel.writeString(alias);
         parcel.writeString(address);
-        parcel.writeLong(firstConnected);
-        parcel.writeLong(lastConnected);
+        parcel.writeLong(firstSeen);
+        parcel.writeLong(lastSeen);
         parcel.writeLong(initialCount);
         parcel.writeLong(lastCount);
         parcel.writeDouble(lastBattery);
@@ -340,10 +340,10 @@ public class Counter implements Parcelable {
         final ContentValues counterValues = new ContentValues();
         counterValues.put(CounterEntry.COLUMN_NAME_ALIAS, alias);
         counterValues.put(CounterEntry.COLUMN_NAME_ADDRESS, address);
-        counterValues.put(CounterEntry.COLUMN_NAME_FIRST_CONNECTED, firstConnected);
+        counterValues.put(CounterEntry.COLUMN_NAME_FIRST_CONNECTED, firstSeen);
         counterValues.put(CounterEntry.COLUMN_NAME_INITIAL_COUNT, initialCount);
         counterValues.put(CounterEntry.COLUMN_NAME_LAST_BATTERY, lastBattery);
-        counterValues.put(CounterEntry.COLUMN_NAME_LAST_CONNECTED, lastConnected);
+        counterValues.put(CounterEntry.COLUMN_NAME_LAST_CONNECTED, lastSeen);
         counterValues.put(CounterEntry.COLUMN_NAME_LAST_COUNT, lastCount);
         counterValues.put(CounterEntry.COLUMN_NAME_LATITUDE, location != null ? location.latitude : 0);
         counterValues.put(CounterEntry.COLUMN_NAME_LONGITUDE, location != null ? location.longitude : 0);
@@ -356,7 +356,7 @@ public class Counter implements Parcelable {
         final ContentValues readingValues = new ContentValues();
         readingValues.put(CounterEntry.COLUMN_NAME_ADDRESS, address);
         readingValues.put(CounterEntry.COLUMN_NAME_LAST_BATTERY, lastBattery);
-        readingValues.put(CounterEntry.COLUMN_NAME_READING_TIME, lastConnected);
+        readingValues.put(CounterEntry.COLUMN_NAME_READING_TIME, lastSeen);
         readingValues.put(CounterEntry.COLUMN_NAME_LAST_COUNT, lastCount);
         readingValues.put(CounterEntry.COLUMN_NAME_LATITUDE, location != null ? location.latitude : 0);
         readingValues.put(CounterEntry.COLUMN_NAME_LONGITUDE, location != null ? location.longitude : 0);
@@ -366,7 +366,7 @@ public class Counter implements Parcelable {
     @NonNull
     public String getFormattedLastSeen(@NonNull Locale locale) {
         return DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.MEDIUM, locale)
-                .format(new Date(getLastConnected()));
+                .format(new Date(getLastSeen()));
     }
 
     private static final class ModelNumber {
