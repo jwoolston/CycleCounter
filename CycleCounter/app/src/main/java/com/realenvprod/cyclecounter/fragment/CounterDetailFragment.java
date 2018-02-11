@@ -16,6 +16,7 @@ import android.view.View.OnClickListener;
 import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.TextView;
+
 import com.github.mikephil.charting.charts.LineChart;
 import com.github.mikephil.charting.components.XAxis;
 import com.github.mikephil.charting.components.YAxis;
@@ -223,9 +224,9 @@ public class CounterDetailFragment extends CounterFragment implements
                 }
             }
             final int count = countSet.getEntryCount();
-            for (int i = 0; i < count; ++i) {
+            /*for (int i = 0; i < count; ++i) {
                 Log.i(TAG, "" + countSet.getEntryForIndex(i));
-            }
+            }*/
             if (batterySet == null) {
                 batterySet = new LineDataSet(batteryEntries, "Battery");
                 batterySet.setAxisDependency(AxisDependency.LEFT);
@@ -263,7 +264,7 @@ public class CounterDetailFragment extends CounterFragment implements
         } else if (delta >= MINUTE_RANGE) {
             // Minute range
             Log.d(TAG, "Using minute based range.");
-            xAxis.setGranularity(1 * MINUTE_RANGE); // 10 minute granularity
+            xAxis.setGranularity(MINUTE_RANGE); // 1 minute granularity
             xAxis.setAxisMaximum(max - (HOURLY_RANGE / 4)); // Display the last 1/4 hour
         } else {
             // Second range
@@ -284,7 +285,7 @@ public class CounterDetailFragment extends CounterFragment implements
 
     @Override
     public void onLoadFinished(Loader<Cursor> loader, Cursor data) {
-
+        Log.d(TAG, "Loader finished! " + data);
     }
 
     @Override

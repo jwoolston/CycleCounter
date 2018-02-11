@@ -1,8 +1,5 @@
 package com.realenvprod.cyclecounter.counter.db;
 
-import static com.realenvprod.cyclecounter.counter.db.CounterDatabaseContract.CounterEntry.COUNTERS_TABLE_NAME;
-import static com.realenvprod.cyclecounter.counter.db.CounterDatabaseContract.CounterEntry.READINGS_TABLE_NAME;
-
 import android.content.ContentProvider;
 import android.content.ContentUris;
 import android.content.ContentValues;
@@ -10,10 +7,15 @@ import android.content.Context;
 import android.content.UriMatcher;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
+import android.database.sqlite.SQLiteException;
 import android.net.Uri;
 import android.text.TextUtils;
 import android.util.Log;
+
 import com.realenvprod.cyclecounter.counter.db.CounterDatabaseContract.CounterEntry;
+
+import static com.realenvprod.cyclecounter.counter.db.CounterDatabaseContract.CounterEntry.COUNTERS_TABLE_NAME;
+import static com.realenvprod.cyclecounter.counter.db.CounterDatabaseContract.CounterEntry.READINGS_TABLE_NAME;
 
 public class CounterSensorProvider extends ContentProvider {
 
@@ -49,7 +51,7 @@ public class CounterSensorProvider extends ContentProvider {
 
     @Override
     public Cursor query(Uri uri, String[] projection, String selection,
-                        String[] selectionArgs, String sortOrder) {
+                        String[] selectionArgs, String sortOrder) throws SQLiteException {
         switch (sUriMatcher.match(uri)) {
             case 1:
                 // Query all rows of COUNTERS table

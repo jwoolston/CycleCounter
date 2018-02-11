@@ -147,7 +147,7 @@ public class AddCounterFragment extends CounterFragment {
                     }).show();
         } else {
             builder.setTitle("Counter Save Failed")
-                    .setMessage("Error occured while saving new counter " + aliasView.getText().toString())
+                    .setMessage("Error occurred while saving new counter " + aliasView.getText().toString())
                     .setPositiveButton("OK", new DialogInterface.OnClickListener() {
                         @Override
                         public void onClick(DialogInterface dialogInterface, int i) {

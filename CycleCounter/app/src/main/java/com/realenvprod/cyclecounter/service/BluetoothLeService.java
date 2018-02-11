@@ -10,24 +10,29 @@ import android.bluetooth.BluetoothGattDescriptor;
 import android.bluetooth.BluetoothGattService;
 import android.bluetooth.BluetoothManager;
 import android.bluetooth.BluetoothProfile;
+import android.bluetooth.le.ScanCallback;
+import android.bluetooth.le.ScanResult;
+import android.bluetooth.le.ScanSettings;
 import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
 import android.os.Binder;
+import android.os.Build;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.IBinder;
 import android.support.annotation.NonNull;
 import android.util.Log;
+
 import com.realenvprod.cyclecounter.CycleApplication;
 import com.realenvprod.cyclecounter.bluetooth.BLEScanResult;
 import com.realenvprod.cyclecounter.counter.Counter;
 import com.realenvprod.cyclecounter.counter.UnknownCounterAdapter;
 import com.realenvprod.cyclecounter.counter.db.CounterDatabaseContract;
 import com.realenvprod.cyclecounter.notification.CycleSensorDiscoveredNotification;
+
 import org.greenrobot.eventbus.EventBus;
 
-import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
@@ -38,7 +43,7 @@ public class BluetoothLeService extends Service {
     private static final String TAG = "BluetoothLeService";
 
     // Stops scanning after 10 seconds.
-    private static final long SCAN_PERIOD = 10000;
+    //private static final long SCAN_PERIOD = 10000;
 
     private static final int STATE_DISCONNECTED = 0;
     private static final int STATE_CONNECTING   = 1;
@@ -112,7 +117,7 @@ public class BluetoothLeService extends Service {
         }
     };
 
-    private final Runnable scanRunnable = new Runnable() {
+   /* private final Runnable scanRunnable = new Runnable() {
         @Override
         public void run() {
             Log.d(TAG, "Halting Scan.");
@@ -120,14 +125,14 @@ public class BluetoothLeService extends Service {
             bluetoothAdapter.stopLeScan(leScanCallback);
             handler.postDelayed(rescanRunnable, SCAN_PERIOD);
         }
-    };
+    };*/
 
-    private final Runnable rescanRunnable = new Runnable() {
+    /*private final Runnable rescanRunnable = new Runnable() {
         @Override
         public void run() {
             scanLeDevice(true);
         }
-    };
+    };*/
 
     public class LocalBinder extends Binder {
         public BluetoothLeService getService() {
@@ -169,19 +174,26 @@ public class BluetoothLeService extends Service {
     }
 
     public void scanLeDevice(final boolean enable) {
-        if (enable) {
+        if (enable && !scanning) {
             // Stops scanning after a pre-defined scan period.
-            handler.postDelayed(scanRunnable, SCAN_PERIOD);
+            //handler.postDelayed(scanRunnable, SCAN_PERIOD);
 
             scanning = true;
             Log.d(TAG, "Scanning...");
-            bluetoothAdapter.startLeScan(leScanCallback);
-        } else {
+            ScanSettings.Builder builder = new ScanSettings.Builder();
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                builder.setCallbackType(ScanSettings.CALLBACK_TYPE_ALL_MATCHES);
+                builder.setMatchMode(ScanSettings.MATCH_MODE_AGGRESSIVE);
+                builder.setNumOfMatches(ScanSettings.MATCH_NUM_ONE_ADVERTISEMENT);
+            }
+            builder.setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY);
+            bluetoothAdapter.getBluetoothLeScanner().startScan(null, builder.build(), leScanCallback);
+        /*} else {
             Log.d(TAG, "Halting Scan.");
             scanning = false;
             handler.removeCallbacks(rescanRunnable);
             handler.removeCallbacks(scanRunnable);
-            bluetoothAdapter.stopLeScan(leScanCallback);
+            bluetoothAdapter.stopLeScan(leScanCallback);*/
         }
     }
 
@@ -310,18 +322,15 @@ public class BluetoothLeService extends Service {
     }
 
     // Device scan callback.
-    private final BluetoothAdapter.LeScanCallback leScanCallback =
-            new BluetoothAdapter.LeScanCallback() {
+    private final ScanCallback leScanCallback = new ScanCallback() {
 
                 @Override
-                public void onLeScan(final BluetoothDevice device, int rssi, byte[] scanRecord) {
+                public void onScanResult(int callbackType, ScanResult result) {
+                    final BluetoothDevice device = result.getDevice();
                     if (device == null) {
                         return;
                     }
-                    if (scanning) {
-                        bluetoothAdapter.stopLeScan(leScanCallback);
-                        scanning = false;
-                    }
+                    final byte[] scanRecord = result.getScanRecord().getBytes();
                     if (Counter.isAdvertisement(scanRecord)) {
                         Cursor cursor = getContentResolver().query(CounterDatabaseContract.COUNTERS_URI,
                                                                    CounterDatabaseContract.PROJECTION_ADDRESS_ONLY,
@@ -329,7 +338,7 @@ public class BluetoothLeService extends Service {
                                                                    new String[]{ device.getAddress() }, null);
                         if (cursor == null || cursor.getCount() == 0) {
                             // This is an unknown counter
-                            final Counter counter = new Counter(new BLEScanResult(device, rssi, scanRecord));
+                            final Counter counter = new Counter(new BLEScanResult(device, result.getRssi(), scanRecord));
                             if (UnknownCounterAdapter.getInstance().addCounter(counter)) {
                                 EventBus.getDefault().post(counter);
                                 if (((CycleApplication) getApplication()).isMainActivityVisibile()) {
@@ -362,10 +371,6 @@ public class BluetoothLeService extends Service {
                             counter.updateDatabase(getContentResolver());
                             EventBus.getDefault().post(counter);
                         }
-                    } else {
-                        Log.v(TAG, "Detected advertisement did not pass check.");
-                        Log.v(TAG, "Observered: " + Arrays.toString(scanRecord));
-                        Log.v(TAG, "Seeking:    " + Arrays.toString(Counter.ADVERTISEMENT));
                     }
                 }
             };

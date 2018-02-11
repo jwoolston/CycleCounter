@@ -60,6 +60,8 @@ public abstract class CounterFragment extends Fragment {
             Log.d(TAG, "Updating counter for this fragment.");
             this.counter = counter;
             updateFromCounter(counter);
+        } else {
+            Log.w(TAG, "Ignoring counter address mismatch. Expecting: " + this.counter.getAddress() + " Received: " + counter.getAddress());
         }
     }
 
