@@ -15,12 +15,14 @@ import android.widget.EditText;
 import android.widget.TextView;
 
 import com.github.mikephil.charting.charts.LineChart;
+import com.github.mikephil.charting.components.AxisBase;
 import com.github.mikephil.charting.components.XAxis;
 import com.github.mikephil.charting.components.YAxis;
 import com.github.mikephil.charting.components.YAxis.AxisDependency;
 import com.github.mikephil.charting.data.Entry;
 import com.github.mikephil.charting.data.LineData;
 import com.github.mikephil.charting.data.LineDataSet;
+import com.github.mikephil.charting.formatter.IAxisValueFormatter;
 import com.github.mikephil.charting.interfaces.datasets.ILineDataSet;
 import com.realenvprod.cyclecounter.R;
 import com.realenvprod.cyclecounter.counter.Counter;
@@ -28,6 +30,9 @@ import com.realenvprod.cyclecounter.counter.db.CounterDatabaseContract;
 import com.realenvprod.cyclecounter.counter.db.CounterDatabaseContract.CounterEntry;
 import com.realenvprod.cyclecounter.view.BatteryView;
 
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.LinkedList;
 import java.util.Locale;
 
@@ -134,6 +139,14 @@ public class CounterDetailFragment extends CounterFragment {
         xAxis.setLabelRotationAngle(20f);
         xAxis.setGranularityEnabled(true);
         xAxis.setGranularity(HOURLY_RANGE); // Hourly
+        xAxis.setValueFormatter(new IAxisValueFormatter() {
+            @Override
+            public String getFormattedValue(float value, AxisBase axis) {
+                SimpleDateFormat format = new SimpleDateFormat("MM/d/yyyy H:00");
+                Calendar calendar = Calendar.getInstance();
+                return format.format(new Date((long) value));
+            }
+        });
         lineChartView.invalidate();
     }
 
@@ -218,8 +231,8 @@ public class CounterDetailFragment extends CounterFragment {
                     lineData.addEntry(entry, 0);
                 }
             }
-            final int count = countSet.getEntryCount();
-            /*for (int i = 0; i < count; ++i) {
+            /*final int count = countSet.getEntryCount();
+            for (int i = 0; i < count; ++i) {
                 Log.i(TAG, "" + countSet.getEntryForIndex(i));
             }*/
             if (batterySet == null) {

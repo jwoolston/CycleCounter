@@ -31,7 +31,7 @@
     <RelativeLayout
         android:id="@+id/details_list"
         android:layout_width="wrap_content"
-        android:layout_height="match_parent"
+        android:layout_height="wrap_content"
         android:layout_below="@id/alias_input"
         android:layout_centerHorizontal="true">
 
@@ -171,12 +171,6 @@
 
     </RelativeLayout>
 
-    <com.github.mikephil.charting.charts.LineChart
-        android:layout_width="match_parent"
-        android:layout_height="200dp"
-        android:layout_alignParentBottom="true"
-        android:id="@+id/history_chart"/>
-
     <android.support.design.widget.FloatingActionButton
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -185,5 +179,14 @@
         android:layout_alignParentEnd="true"
         android:layout_alignParentBottom="true"
         android:src="@drawable/ic_delete_black_24dp"/>
+
+    <com.github.mikephil.charting.charts.LineChart
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="8dp"
+        android:layout_below="@id/details_list"
+        android:layout_above="@id/delete_counter"
+        android:id="@+id/history_chart"/>
+
 
 </RelativeLayout>
