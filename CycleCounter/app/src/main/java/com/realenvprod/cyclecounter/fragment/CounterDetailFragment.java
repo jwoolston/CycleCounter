@@ -6,9 +6,6 @@ import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
-import android.support.v4.app.LoaderManager;
-import android.support.v4.content.CursorLoader;
-import android.support.v4.content.Loader;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -39,8 +36,7 @@ import java.util.Locale;
  * Use the {@link CounterDetailFragment#newInstance} factory method to
  * create an instance of this fragment.
  */
-public class CounterDetailFragment extends CounterFragment implements
-                                                           LoaderManager.LoaderCallbacks<Cursor> {
+public class CounterDetailFragment extends CounterFragment {
 
     public static final String TAG = "CounterDetailFragment";
 
@@ -95,7 +91,6 @@ public class CounterDetailFragment extends CounterFragment implements
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        getActivity().getSupportLoaderManager().initLoader(READINGS_LOADER_ID, null, this);
     }
 
     @Override
@@ -272,24 +267,5 @@ public class CounterDetailFragment extends CounterFragment implements
             xAxis.setGranularity(SECOND_RANGE);
             xAxis.setAxisMaximum(max - MINUTE_RANGE); // Display the last 1 minute
         }
-    }
-
-    @Override
-    public Loader<Cursor> onCreateLoader(int id, Bundle args) {
-        return new CursorLoader(getContext(), CounterDatabaseContract.READINGS_URI,
-                                CounterDatabaseContract.PROJECTION_READINGS_WITH_TIME,
-                                CounterDatabaseContract.SELECTION_ADDRESS_ONLY,
-                                new String[]{ counter.getAddress() },
-                                null);
-    }
-
-    @Override
-    public void onLoadFinished(Loader<Cursor> loader, Cursor data) {
-        Log.d(TAG, "Loader finished! " + data);
-    }
-
-    @Override
-    public void onLoaderReset(Loader<Cursor> loader) {
-        Log.d(TAG, "Loader Reset!");
     }
 }
