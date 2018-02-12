@@ -7,6 +7,7 @@ import android.content.ContentValues;
 import android.content.Intent;
 import android.database.Cursor;
 import android.os.Bundle;
+import android.support.v4.content.ContextCompat;
 import android.util.Log;
 import com.google.android.gms.maps.model.LatLng;
 import com.realenvprod.cyclecounter.counter.db.CounterDatabaseContract;
@@ -43,7 +44,7 @@ public class CycleApplication extends Application implements ActivityLifecycleCa
 
     private void launchScanService() {
         final Intent intent = new Intent(this, BluetoothLeService.class);
-        startService(intent);
+        ContextCompat.startForegroundService(this, intent);
     }
 
     private void populatedTestDataIfNeeded() {

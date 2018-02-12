@@ -1,15 +1,17 @@
 package com.realenvprod.cyclecounter.service;
 
+import android.app.Notification;
+import android.app.Notification.Builder;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
 import android.app.Service;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGatt;
-import android.bluetooth.BluetoothGattCallback;
 import android.bluetooth.BluetoothGattCharacteristic;
-import android.bluetooth.BluetoothGattDescriptor;
 import android.bluetooth.BluetoothGattService;
 import android.bluetooth.BluetoothManager;
-import android.bluetooth.BluetoothProfile;
+import android.bluetooth.le.BluetoothLeScanner;
 import android.bluetooth.le.ScanCallback;
 import android.bluetooth.le.ScanResult;
 import android.bluetooth.le.ScanSettings;
@@ -18,61 +20,39 @@ import android.content.Intent;
 import android.database.Cursor;
 import android.os.Binder;
 import android.os.Build;
+import android.os.Build.VERSION;
+import android.os.Build.VERSION_CODES;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.IBinder;
 import android.support.annotation.NonNull;
 import android.util.Log;
-
 import com.realenvprod.cyclecounter.CycleApplication;
+import com.realenvprod.cyclecounter.R;
 import com.realenvprod.cyclecounter.bluetooth.BLEScanResult;
 import com.realenvprod.cyclecounter.counter.Counter;
 import com.realenvprod.cyclecounter.counter.UnknownCounterAdapter;
 import com.realenvprod.cyclecounter.counter.db.CounterDatabaseContract;
 import com.realenvprod.cyclecounter.notification.CycleSensorDiscoveredNotification;
-
-import org.greenrobot.eventbus.EventBus;
-
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
 import java.util.UUID;
+import org.greenrobot.eventbus.EventBus;
 
 public class BluetoothLeService extends Service {
 
     private static final String TAG = "BluetoothLeService";
 
-    // Stops scanning after 10 seconds.
-    //private static final long SCAN_PERIOD = 10000;
+    private final static int NOTIFICATION_ID = 1;
 
-    private static final int STATE_DISCONNECTED = 0;
-    private static final int STATE_CONNECTING   = 1;
-    private static final int STATE_CONNECTED    = 2;
-
-    public final static String ACTION_GATT_CONNECTING          = BluetoothLeService.class.getCanonicalName()
-                                                                 + ".ACTION_GATT_CONNECTING";
-    public final static String ACTION_GATT_CONNECTED           = BluetoothLeService.class.getCanonicalName()
-                                                                 + ".ACTION_GATT_CONNECTED";
-    public final static String ACTION_GATT_DISCONNECTED        = BluetoothLeService.class.getCanonicalName()
-                                                                 + ".ACTION_GATT_DISCONNECTED";
-    public final static String ACTION_GATT_SERVICES_DISCOVERED = BluetoothLeService.class.getCanonicalName()
-                                                                 + ".ACTION_GATT_SERVICES_DISCOVERED";
-    public final static String ACTION_DATA_AVAILABLE           = BluetoothLeService.class.getCanonicalName()
-                                                                 + ".ACTION_DATA_AVAILABLE";
-    public final static String EXTRA_DATA                      = BluetoothLeService.class.getCanonicalName()
-                                                                 + ".EXTRA_DATA";
-    public final static String EXTRA_DATA_UUID                 = BluetoothLeService.class.getCanonicalName()
-                                                                 + ".EXTRA_DATA_UUID";
-    public final static String EXTRA_CYCLE_COUNT_DATA          = BluetoothLeService.class.getCanonicalName()
-                                                                 + ".EXTRA_CYCLE_COUNT_DATA";
-    public final static String EXTRA_BATTERY_DATA              = BluetoothLeService.class.getCanonicalName()
-                                                                 + ".EXTRA_BATTERY_DATA";
+    public final static String EXTRA_DATA_UUID = BluetoothLeService.class.getCanonicalName()
+                                                 + ".EXTRA_DATA_UUID";
 
     private BluetoothAdapter bluetoothAdapter;
     private String           bluetoothDeviceAddress;
     private BluetoothGatt    bluetoothGatt;
-    private int connectionState = STATE_DISCONNECTED;
-    private boolean scanning;
+    private boolean          scanning;
 
     private HandlerThread handlerThread;
     private Handler       handler;
@@ -82,6 +62,22 @@ public class BluetoothLeService extends Service {
     private final Queue<BLETask> bleTasks = new LinkedList<>();
 
     private final Object BLETaskLock = new Object();
+
+    private static Notification getNotification(@NonNull Context context) {
+        final Notification.Builder builder = new Builder(context)
+                .setContentTitle("Cycle counter scan active")
+                .setSmallIcon(R.drawable.ic_bluetooth_searching_black_24dp);
+        if (VERSION.SDK_INT >= VERSION_CODES.O) {
+            final String channelId = "com.realenvprod.cyclecounter.notification";
+            final String channelName = "Cycle counter scan notification";
+            NotificationChannel channel = new NotificationChannel(channelId, channelName,
+                                                                  NotificationManager.IMPORTANCE_LOW);
+            ((NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE))
+                    .createNotificationChannel(channel);
+            builder.setChannelId(channelId);
+        }
+        return builder.build();
+    }
 
     private class BLETask {
 
@@ -116,23 +112,6 @@ public class BluetoothLeService extends Service {
             }
         }
     };
-
-   /* private final Runnable scanRunnable = new Runnable() {
-        @Override
-        public void run() {
-            Log.d(TAG, "Halting Scan.");
-            scanning = false;
-            bluetoothAdapter.stopLeScan(leScanCallback);
-            handler.postDelayed(rescanRunnable, SCAN_PERIOD);
-        }
-    };*/
-
-    /*private final Runnable rescanRunnable = new Runnable() {
-        @Override
-        public void run() {
-            scanLeDevice(true);
-        }
-    };*/
 
     public class LocalBinder extends Binder {
         public BluetoothLeService getService() {
@@ -175,9 +154,7 @@ public class BluetoothLeService extends Service {
 
     public void scanLeDevice(final boolean enable) {
         if (enable && !scanning) {
-            // Stops scanning after a pre-defined scan period.
-            //handler.postDelayed(scanRunnable, SCAN_PERIOD);
-
+            startForeground(NOTIFICATION_ID, getNotification(getApplicationContext()));
             scanning = true;
             Log.d(TAG, "Scanning...");
             ScanSettings.Builder builder = new ScanSettings.Builder();
@@ -187,77 +164,10 @@ public class BluetoothLeService extends Service {
                 builder.setNumOfMatches(ScanSettings.MATCH_NUM_ONE_ADVERTISEMENT);
             }
             builder.setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY);
-            bluetoothAdapter.getBluetoothLeScanner().startScan(null, builder.build(), leScanCallback);
-        /*} else {
-            Log.d(TAG, "Halting Scan.");
-            scanning = false;
-            handler.removeCallbacks(rescanRunnable);
-            handler.removeCallbacks(scanRunnable);
-            bluetoothAdapter.stopLeScan(leScanCallback);*/
+            BluetoothLeScanner scanner = bluetoothAdapter.getBluetoothLeScanner();
+            Log.d(TAG, "Scanner: " + scanner);
+            scanner.startScan(null, builder.build(), leScanCallback);
         }
-    }
-
-    /**
-     * Connects to the GATT server hosted on the Bluetooth LE device.
-     *
-     * @param address The device address of the destination device.
-     *
-     * @return Return true if the connection is initiated successfully. The connection result
-     * is reported asynchronously through the
-     * {@code BluetoothGattCallback#onConnectionStateChange(android.bluetooth.BluetoothGatt, int, int)}
-     * callback.
-     */
-    public boolean connect(@NonNull final String address) {
-        if (bluetoothAdapter == null) {
-            Log.w(TAG, "BluetoothAdapter not initialized or unspecified address.");
-            return false;
-        }
-
-        scanLeDevice(false);
-        handler.post(serviceTaskQueue);
-
-        // Previously connected device.  Try to reconnect.
-        if (bluetoothDeviceAddress != null && address.equals(bluetoothDeviceAddress)
-            && bluetoothGatt != null) {
-            Log.d(TAG, "Trying to use an existing bluetoothGatt for connection.");
-            if (bluetoothGatt.connect()) {
-                connectionState = STATE_CONNECTING;
-                broadcastUpdate(ACTION_GATT_CONNECTING);
-                return true;
-            } else {
-                return false;
-            }
-        }
-
-        final BluetoothDevice device = bluetoothAdapter.getRemoteDevice(address);
-        if (device == null) {
-            Log.w(TAG, "Device not found.  Unable to connect.");
-            return false;
-        }
-        // We want to directly connect to the device, so we are setting the autoConnect
-        // parameter to false.
-        bluetoothGatt = device.connectGatt(this, false, gattCallback);
-        Log.d(TAG, "Trying to create a new connection.");
-        bluetoothDeviceAddress = address;
-        connectionState = STATE_CONNECTING;
-        broadcastUpdate(ACTION_GATT_CONNECTING);
-        return true;
-    }
-
-    /**
-     * Disconnects an existing connection or cancel a pending connection. The disconnection result
-     * is reported asynchronously through the
-     * {@code BluetoothGattCallback#onConnectionStateChange(android.bluetooth.BluetoothGatt, int, int)}
-     * callback.
-     */
-    public void disconnect() {
-        if (bluetoothAdapter == null || bluetoothGatt == null) {
-            Log.w(TAG, "BluetoothAdapter not initialized");
-            return;
-        }
-        bluetoothGatt.disconnect();
-        handler.removeCallbacks(serviceTaskQueue);
-        scanLeDevice(true);
     }
 
     /**
@@ -296,139 +206,60 @@ public class BluetoothLeService extends Service {
         final UUID uuid = characteristic.getUuid();
         final Intent intent = new Intent(action);
         intent.putExtra(EXTRA_DATA_UUID, uuid.toString());
-        /*if (UUID_MODEL_NUMBER.equals(uuid) || UUID_HARDWARE_REVISION.equals(uuid)
-            || UUID_SOFTWARE_REVISION.equals(uuid)) {
-            intent.putExtra(EXTRA_DATA, characteristic.getStringValue(0));
-        } else if (UUID_CYCLE_COUNT.equals(uuid)) {
-            final long cycleCount = characteristic.getIntValue(BluetoothGattCharacteristic.FORMAT_UINT32, 0);
-            Log.d(TAG, String.format("Received cycle count: %d", cycleCount));
-            intent.putExtra(EXTRA_DATA, cycleCount);
-        } else if (UUID_BATTERY_LEVEL.equals(uuid)) {
-            final int batteryLevel = characteristic.getIntValue(BluetoothGattCharacteristic.FORMAT_UINT8, 0);
-            Log.d(TAG, String.format("Received battery level: %d%%", batteryLevel));
-            intent.putExtra(EXTRA_DATA, batteryLevel);
-        } else {
-            // For all other profiles, writes the data formatted in HEX.
-            final byte[] data = characteristic.getValue();
-            if (data != null && data.length > 0) {
-                final StringBuilder stringBuilder = new StringBuilder(data.length);
-                for (byte byteChar : data) {
-                    stringBuilder.append(String.format("%02X ", byteChar));
-                }
-                intent.putExtra(EXTRA_DATA, new String(data) + "\n" + stringBuilder.toString());
-            }
-        }*/
         sendBroadcast(intent);
     }
 
     // Device scan callback.
     private final ScanCallback leScanCallback = new ScanCallback() {
 
-                @Override
-                public void onScanResult(int callbackType, ScanResult result) {
-                    final BluetoothDevice device = result.getDevice();
-                    if (device == null) {
+        @Override
+        public void onScanResult(int callbackType, ScanResult result) {
+            final BluetoothDevice device = result.getDevice();
+            if (device == null) {
+                return;
+            }
+            final byte[] scanRecord = result.getScanRecord().getBytes();
+            if (Counter.isAdvertisement(scanRecord)) {
+                Cursor cursor = getContentResolver().query(CounterDatabaseContract.COUNTERS_URI,
+                                                           CounterDatabaseContract.PROJECTION_ADDRESS_ONLY,
+                                                           CounterDatabaseContract.SELECTION_ADDRESS_ONLY,
+                                                           new String[]{ device.getAddress() }, null);
+                if (cursor == null || cursor.getCount() == 0) {
+                    // This is an unknown counter
+                    final Counter counter = new Counter(new BLEScanResult(device, result.getRssi(), scanRecord));
+                    if (UnknownCounterAdapter.getInstance().addCounter(counter)) {
+                        EventBus.getDefault().post(counter);
+                        if (((CycleApplication) getApplication()).isMainActivityVisibile()) {
+                            Log.d(TAG, "Main activity is visible, it will show a dialog.");
+                        } else {
+                            Log.d(TAG, "Main activity is not visible, showing notification.");
+                            CycleSensorDiscoveredNotification
+                                    .notify(BluetoothLeService.this, counter.getAddress(), 1);
+                        }
+                    } else {
+                        Log.d(TAG, "Ignoring counter - already seen.");
+                    }
+                    if (cursor != null) {
+                        cursor.close();
+                    }
+                } else {
+                    // We already know about this counter
+                    Log.d(TAG, "Discovered known counter.");
+                    cursor.close();
+                    cursor = getContentResolver().query(CounterDatabaseContract.COUNTERS_URI, null,
+                                                        CounterDatabaseContract.SELECTION_ADDRESS_ONLY,
+                                                        new String[]{ device.getAddress() }, null);
+                    if (cursor == null || cursor.getCount() == 0) {
+                        Log.e(TAG, "Counter indicated as known but cursor returned null or zero length.");
                         return;
                     }
-                    final byte[] scanRecord = result.getScanRecord().getBytes();
-                    if (Counter.isAdvertisement(scanRecord)) {
-                        Cursor cursor = getContentResolver().query(CounterDatabaseContract.COUNTERS_URI,
-                                                                   CounterDatabaseContract.PROJECTION_ADDRESS_ONLY,
-                                                                   CounterDatabaseContract.SELECTION_ADDRESS_ONLY,
-                                                                   new String[]{ device.getAddress() }, null);
-                        if (cursor == null || cursor.getCount() == 0) {
-                            // This is an unknown counter
-                            final Counter counter = new Counter(new BLEScanResult(device, result.getRssi(), scanRecord));
-                            if (UnknownCounterAdapter.getInstance().addCounter(counter)) {
-                                EventBus.getDefault().post(counter);
-                                if (((CycleApplication) getApplication()).isMainActivityVisibile()) {
-                                    Log.d(TAG, "Main activity is visible, it will show a dialog.");
-                                } else {
-                                    Log.d(TAG, "Main activity is not visible, showing notification.");
-                                    CycleSensorDiscoveredNotification
-                                            .notify(BluetoothLeService.this, counter.getAddress(), 1);
-                                }
-                            } else {
-                                Log.d(TAG, "Ignoring counter - already seen.");
-                            }
-                            if (cursor != null) {
-                                cursor.close();
-                            }
-                        } else {
-                            // We already know about this counter
-                            Log.d(TAG, "Discovered known counter.");
-                            cursor.close();
-                            cursor = getContentResolver().query(CounterDatabaseContract.COUNTERS_URI, null,
-                                                                CounterDatabaseContract.SELECTION_ADDRESS_ONLY,
-                                                                new String[]{ device.getAddress() }, null);
-                            if (cursor == null || cursor.getCount() == 0) {
-                                Log.e(TAG, "Counter indicated as known but cursor returned null or zero length.");
-                                return;
-                            }
-                            cursor.moveToFirst();
-                            final Counter counter = new Counter(cursor, scanRecord);
-                            // Update counter record and readings record
-                            counter.updateDatabase(getContentResolver());
-                            EventBus.getDefault().post(counter);
-                        }
-                    }
+                    cursor.moveToFirst();
+                    final Counter counter = new Counter(cursor, scanRecord);
+                    // Update counter record and readings record
+                    counter.updateDatabase(getContentResolver());
+                    EventBus.getDefault().post(counter);
                 }
-            };
-
-    // Implements callback methods for GATT events that the app cares about.  For example,
-    // connection change and services discovered.
-    private final BluetoothGattCallback gattCallback = new BluetoothGattCallback() {
-        @Override
-        public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
-            String intentAction;
-            if (newState == BluetoothProfile.STATE_CONNECTED) {
-                intentAction = ACTION_GATT_CONNECTED;
-                connectionState = STATE_CONNECTED;
-                broadcastUpdate(intentAction);
-                Log.i(TAG, "Connected to GATT server.");
-                // Attempts to discover services after successful connection.
-                boolean result = bluetoothGatt.discoverServices();
-                Log.i(TAG, "Attempting to start service discovery:" + result);
-            } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
-                intentAction = ACTION_GATT_DISCONNECTED;
-                connectionState = STATE_DISCONNECTED;
-                Log.i(TAG, "Disconnected from GATT server.");
-                broadcastUpdate(intentAction);
             }
-        }
-
-        @Override
-        public void onServicesDiscovered(BluetoothGatt gatt, int status) {
-            if (status == BluetoothGatt.GATT_SUCCESS) {
-                broadcastUpdate(ACTION_GATT_SERVICES_DISCOVERED);
-            } else {
-                Log.w(TAG, "onServicesDiscovered received: " + status);
-            }
-        }
-
-        @Override
-        public void onCharacteristicRead(BluetoothGatt gatt,
-                                         BluetoothGattCharacteristic characteristic,
-                                         int status) {
-            synchronized (BLETaskLock) {
-                if (status == BluetoothGatt.GATT_SUCCESS) {
-                    broadcastUpdate(ACTION_DATA_AVAILABLE, characteristic);
-                }
-                BLETaskLock.notify();
-            }
-        }
-
-        @Override
-        public void onDescriptorWrite(BluetoothGatt gatt, BluetoothGattDescriptor descriptor, int status) {
-            synchronized (BLETaskLock) {
-                BLETaskLock.notify();
-            }
-        }
-
-        @Override
-        public void onCharacteristicChanged(BluetoothGatt gatt,
-                                            BluetoothGattCharacteristic characteristic) {
-            broadcastUpdate(ACTION_DATA_AVAILABLE, characteristic);
         }
     };
 }

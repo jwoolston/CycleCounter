@@ -365,7 +365,7 @@ public class Counter implements Parcelable {
 
     @NonNull
     public String getFormattedLastSeen(@NonNull Locale locale) {
-        return DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.MEDIUM, locale)
+        return DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT, locale)
                 .format(new Date(getLastSeen()));
     }
 

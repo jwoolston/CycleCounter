@@ -13,7 +13,6 @@ import android.view.View.OnClickListener;
 import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.TextView;
-
 import com.github.mikephil.charting.charts.LineChart;
 import com.github.mikephil.charting.components.AxisBase;
 import com.github.mikephil.charting.components.XAxis;
@@ -29,9 +28,7 @@ import com.realenvprod.cyclecounter.counter.Counter;
 import com.realenvprod.cyclecounter.counter.db.CounterDatabaseContract;
 import com.realenvprod.cyclecounter.counter.db.CounterDatabaseContract.CounterEntry;
 import com.realenvprod.cyclecounter.view.BatteryView;
-
 import java.text.SimpleDateFormat;
-import java.util.Calendar;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.Locale;
@@ -47,7 +44,7 @@ public class CounterDetailFragment extends CounterFragment {
 
     private static final String ARG_COUNTER = "counter";
 
-    private static final String CYCLE_SET_NAME = "Cycles;";
+    private static final String CYCLE_SET_NAME = "Cycles";
     private static final String BATTERY_SET_NAME = "Battery";
 
     private static final int READINGS_LOADER_ID = 0x01;
@@ -142,8 +139,7 @@ public class CounterDetailFragment extends CounterFragment {
         xAxis.setValueFormatter(new IAxisValueFormatter() {
             @Override
             public String getFormattedValue(float value, AxisBase axis) {
-                SimpleDateFormat format = new SimpleDateFormat("MM/d/yyyy H:00");
-                Calendar calendar = Calendar.getInstance();
+                SimpleDateFormat format = new SimpleDateFormat("MM/d/yy HH:00");
                 return format.format(new Date((long) value));
             }
         });
@@ -186,7 +182,6 @@ public class CounterDetailFragment extends CounterFragment {
         modelView.setText(counter.getModel());
         hardwareView.setText(counter.getHardwareRevision());
         softwareView.setText(counter.getSoftwareRevision());
-        //getActivity().getSupportLoaderManager().restartLoader(READINGS_LOADER_ID, null, this);
         final Cursor readings = getContext().getContentResolver()
                 .query(CounterDatabaseContract.READINGS_URI, CounterDatabaseContract.PROJECTION_READINGS_WITH_TIME,
                        CounterDatabaseContract.SELECTION_COUNTER_DETAILS_READING,
@@ -231,12 +226,8 @@ public class CounterDetailFragment extends CounterFragment {
                     lineData.addEntry(entry, 0);
                 }
             }
-            /*final int count = countSet.getEntryCount();
-            for (int i = 0; i < count; ++i) {
-                Log.i(TAG, "" + countSet.getEntryForIndex(i));
-            }*/
             if (batterySet == null) {
-                batterySet = new LineDataSet(batteryEntries, "Battery");
+                batterySet = new LineDataSet(batteryEntries, BATTERY_SET_NAME);
                 batterySet.setAxisDependency(AxisDependency.LEFT);
                 ((LineDataSet) batterySet).setColor(getResources().getColor(R.color.colorPrimary));
                 lineData.addDataSet(batterySet);
@@ -252,6 +243,11 @@ public class CounterDetailFragment extends CounterFragment {
             lineChartView.invalidate();
             if (lastReadingTime == 0) {
                 lastReadingTime = max;
+            }
+        } else {
+            Log.e(TAG, "Unable to update graph due to bad cursor: " + data);
+            if (data != null) {
+                data.close();
             }
         }
     }
