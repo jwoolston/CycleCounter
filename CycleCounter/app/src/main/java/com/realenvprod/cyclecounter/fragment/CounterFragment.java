@@ -1,9 +1,17 @@
 package com.realenvprod.cyclecounter.fragment;
 
+import android.graphics.PorterDuff.Mode;
 import android.os.Bundle;
+import android.os.Handler;
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.util.Log;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.ImageView;
+import com.realenvprod.cyclecounter.R;
 import com.realenvprod.cyclecounter.counter.Counter;
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
@@ -18,7 +26,9 @@ public abstract class CounterFragment extends Fragment {
 
     protected static final String ARG_COUNTER = "counter";
 
-    protected Counter counter;
+    protected Counter   counter;
+    protected ImageView advertisementIndicator;
+    protected Handler   handler;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -26,6 +36,20 @@ public abstract class CounterFragment extends Fragment {
         if (getArguments() != null) {
             counter = getArguments().getParcelable(ARG_COUNTER);
         }
+    }
+
+    @Nullable
+    @Override
+    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
+                                                 @Nullable Bundle savedInstanceState) {
+        final View view = inflateView(inflater, container, savedInstanceState);
+        advertisementIndicator = view.findViewById(R.id.advertisement_indicator);
+        if (advertisementIndicator != null) {
+            advertisementIndicator.setColorFilter(R.color.colorPrimary, Mode.SRC_ATOP);
+            advertisementIndicator.setVisibility(View.INVISIBLE);
+            handler = new Handler();
+        }
+        return view;
     }
 
     @Override
@@ -58,12 +82,28 @@ public abstract class CounterFragment extends Fragment {
     public void onCounterDiscovered(final Counter counter) {
         if (this.counter.getAddress().equals(counter.getAddress())) {
             Log.d(TAG, "Updating counter for this fragment.");
+            showAdvertisement();
             this.counter = counter;
             updateFromCounter(counter);
         } else {
             Log.w(TAG, "Ignoring counter address mismatch. Expecting: " + this.counter.getAddress() + " Received: " + counter.getAddress());
         }
     }
+
+    protected void showAdvertisement() {
+        if (advertisementIndicator != null) {
+            advertisementIndicator.setVisibility(View.VISIBLE);
+            handler.postDelayed(new Runnable() {
+                @Override public void run() {
+                    advertisementIndicator.setVisibility(View.INVISIBLE);
+                }
+            }, 1000);
+        }
+    }
+
+    @NonNull
+    protected abstract View inflateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
+                                        @Nullable Bundle savedInstanceState);
 
     protected abstract void updateFromCounter(@NonNull Counter counter);
 }

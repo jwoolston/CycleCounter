@@ -1,6 +1,9 @@
 package com.realenvprod.cyclecounter.fragment;
 
 
+import android.app.AlertDialog;
+import android.app.AlertDialog.Builder;
+import android.content.DialogInterface;
 import android.database.Cursor;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
@@ -95,31 +98,6 @@ public class CounterDetailFragment extends CounterFragment {
         super.onCreate(savedInstanceState);
     }
 
-    @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container,
-                             Bundle savedInstanceState) {
-        // Inflate the layout for this fragment
-        final View view = inflater.inflate(R.layout.fragment_counter_details, container, false);
-        aliasView = (EditText) view.findViewById(R.id.alias_input);
-        addressView = (TextView) view.findViewById(R.id.address_entry);
-        lastSeenView = (TextView) view.findViewById(R.id.last_seen_entry);
-        countView = (TextView) view.findViewById(R.id.current_count_entry);
-        batteryView = (TextView) view.findViewById(R.id.current_battery_entry);
-        batteryStatus = (BatteryView) view.findViewById(R.id.current_battery_icon);
-        modelView = (TextView) view.findViewById(R.id.model_number_entry);
-        hardwareView = (TextView) view.findViewById(R.id.hardware_revision_entry);
-        softwareView = (TextView) view.findViewById(R.id.software_revision_entry);
-        lineChartView = (LineChart) view.findViewById(R.id.history_chart);
-        initializeChart();
-        view.findViewById(R.id.delete_counter).setOnClickListener(new OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                deleteCounter();
-            }
-        });
-        return view;
-    }
-
     private void initializeChart() {
         lineChartView.setData(new LineData());
         lineChartView.setDescription(null);
@@ -171,6 +149,32 @@ public class CounterDetailFragment extends CounterFragment {
         updateFromCounter(counter);
     }
 
+    @NonNull
+    @Override
+    protected View inflateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
+                                                  @Nullable Bundle savedInstanceState) {
+        // Inflate the layout for this fragment
+        final View view = inflater.inflate(R.layout.fragment_counter_details, container, false);
+        aliasView = (EditText) view.findViewById(R.id.alias_input);
+        addressView = (TextView) view.findViewById(R.id.address_entry);
+        lastSeenView = (TextView) view.findViewById(R.id.last_seen_entry);
+        countView = (TextView) view.findViewById(R.id.current_count_entry);
+        batteryView = (TextView) view.findViewById(R.id.current_battery_entry);
+        batteryStatus = (BatteryView) view.findViewById(R.id.current_battery_icon);
+        modelView = (TextView) view.findViewById(R.id.model_number_entry);
+        hardwareView = (TextView) view.findViewById(R.id.hardware_revision_entry);
+        softwareView = (TextView) view.findViewById(R.id.software_revision_entry);
+        lineChartView = (LineChart) view.findViewById(R.id.history_chart);
+        initializeChart();
+        view.findViewById(R.id.delete_counter).setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                deleteCounter();
+            }
+        });
+        return view;
+    }
+
     @Override
     protected void updateFromCounter(@NonNull Counter counter) {
         aliasView.setText(counter.getAlias());
@@ -191,7 +195,27 @@ public class CounterDetailFragment extends CounterFragment {
     }
 
     private void deleteCounter() {
-
+        AlertDialog.Builder builder = new Builder(getContext());
+        builder.setCancelable(true)
+                .setIcon(R.drawable.ic_warning_black_24dp)
+                .setTitle("Confirm Delete")
+                .setMessage("Deleting this counter will also remove all readings that have previously been taken. Are"
+                            + " you sure you wish to proceed?")
+                .setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i) {
+                        counter.deleteFromDatabase(getContext().getContentResolver());
+                        dialogInterface.dismiss();
+                        getActivity().getSupportFragmentManager().popBackStack();
+                    }
+                })
+                .setNegativeButton(android.R.string.no, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i) {
+                        dialogInterface.dismiss();
+                    }
+                });
+        builder.show();
     }
 
     private void updateGraph(@Nullable Cursor data) {

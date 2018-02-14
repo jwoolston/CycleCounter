@@ -351,7 +351,7 @@ public class Counter implements Parcelable {
         counterValues.put(CounterEntry.COLUMN_NAME_HARDWARE_REVISION, hardwareRevision);
         counterValues.put(CounterEntry.COLUMN_NAME_SOFTWARE_REVISION, softwareRevision);
         contentResolver.update(CounterDatabaseContract.COUNTERS_URI, counterValues,
-                               CounterDatabaseContract.SELECTION_ADDRESS_ONLY, new String[] { address });
+                               CounterDatabaseContract.SELECTION_ADDRESS_ONLY, new String[]{ address });
 
         final ContentValues readingValues = new ContentValues();
         readingValues.put(CounterEntry.COLUMN_NAME_ADDRESS, address);
@@ -361,6 +361,13 @@ public class Counter implements Parcelable {
         readingValues.put(CounterEntry.COLUMN_NAME_LATITUDE, location != null ? location.latitude : 0);
         readingValues.put(CounterEntry.COLUMN_NAME_LONGITUDE, location != null ? location.longitude : 0);
         contentResolver.insert(CounterDatabaseContract.READINGS_URI, readingValues);
+    }
+
+    public void deleteFromDatabase(@NonNull ContentResolver contentResolver) {
+        contentResolver.delete(CounterDatabaseContract.COUNTERS_URI, CounterDatabaseContract.SELECTION_ADDRESS_ONLY,
+                               new String[]{ address });
+        contentResolver.delete(CounterDatabaseContract.READINGS_URI, CounterDatabaseContract.SELECTION_ADDRESS_ONLY,
+                               new String[]{ address });
     }
 
     @NonNull
@@ -389,6 +396,7 @@ public class Counter implements Parcelable {
         private static final byte CY8CKIT_042_BLE_A_PROTOTYPE = 0x01;
         private static final byte REV_A                       = 0x02;
         private static final byte REV_B                       = 0x03;
+        private static final byte REV_C                       = 0x04;
 
         @NonNull
         static String getHardwareRevisionString(byte hardwareByte) {
@@ -399,6 +407,8 @@ public class Counter implements Parcelable {
                     return "A";
                 case REV_B:
                     return "B";
+                case REV_C:
+                    return "C";
                 default:
                     return "Unknown";
             }
